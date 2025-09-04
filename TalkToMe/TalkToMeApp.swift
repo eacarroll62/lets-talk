@@ -10,11 +10,14 @@ import SwiftData
 
 @main
 struct TalkToMeApp: App {
-
+    @State private var speaker: Speaker = Speaker()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainView()
+                .environment(speaker)
+                .modelContainer(for: [Favorite.self, Page.self, Tile.self])
         }
-        .modelContainer(for: Item.self)
     }
 }
+

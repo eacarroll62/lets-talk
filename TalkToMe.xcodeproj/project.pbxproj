@@ -3,27 +3,52 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		A82D05F02A522BBB004DC550 /* TalkToMeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05EF2A522BBB004DC550 /* TalkToMeApp.swift */; };
-		A82D05F22A522BBB004DC550 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05F12A522BBB004DC550 /* ContentView.swift */; };
+		A82D05F22A522BBB004DC550 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05F12A522BBB004DC550 /* MainView.swift */; };
 		A82D05F42A522BBC004DC550 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A82D05F32A522BBC004DC550 /* Assets.xcassets */; };
 		A82D05F72A522BBC004DC550 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A82D05F62A522BBC004DC550 /* Preview Assets.xcassets */; };
-		A82D05F92A522BBC004DC550 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05F82A522BBC004DC550 /* Item.swift */; };
+		A82D06042A522E9D004DC550 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D06032A522E9D004DC550 /* SettingsView.swift */; };
+		A8380E962E69579900E9E58B /* FileName.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380E952E69579900E9E58B /* FileName.swift */; };
+		A8380E982E69579A00E9E58B /* ModelSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380E972E69579A00E9E58B /* ModelSetup.swift */; };
+		A84B3F222A59A9470013A493 /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84B3F212A59A9470013A493 /* HeaderView.swift */; };
+		A84B3F262A59F3A30013A493 /* MessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84B3F252A59F3A30013A493 /* MessageView.swift */; };
+		A88CBA0F2D0D0B93002A9798 /* SpeakerTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88CBA0E2D0D0B93002A9798 /* SpeakerTestView.swift */; };
+		A8A99F032A8C5DC80013E6C7 /* PickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A99F022A8C5DC80013E6C7 /* PickerView.swift */; };
+		A8DAEC6A2E6918D40082027E /* Page.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DAEC692E6918D40082027E /* Page.swift */; };
+		A8DAEC6C2E6918D60082027E /* Tile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DAEC6B2E6918D60082027E /* Tile.swift */; };
+		A8DAEC6E2E6918D90082027E /* TileGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DAEC6D2E6918D90082027E /* TileGridView.swift */; };
+		A8E222062D0FCF1B002710C0 /* FavoritesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E222052D0FCF1B002710C0 /* FavoritesList.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A82D05EC2A522BBB004DC550 /* TalkToMe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TalkToMe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A82D05EF2A522BBB004DC550 /* TalkToMeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkToMeApp.swift; sourceTree = "<group>"; };
-		A82D05F12A522BBB004DC550 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A82D05F12A522BBB004DC550 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		A82D05F32A522BBC004DC550 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A82D05F62A522BBC004DC550 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		A82D05F82A522BBC004DC550 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
 		A82D05FA2A522BBC004DC550 /* TalkToMe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkToMe.entitlements; sourceTree = "<group>"; };
 		A82D05FB2A522BBC004DC550 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A82D06032A522E9D004DC550 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A8380E952E69579900E9E58B /* FileName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileName.swift; sourceTree = "<group>"; };
+		A8380E972E69579A00E9E58B /* ModelSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSetup.swift; sourceTree = "<group>"; };
+		A84B3F212A59A9470013A493 /* HeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
+		A84B3F252A59F3A30013A493 /* MessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageView.swift; sourceTree = "<group>"; };
+		A88CBA0E2D0D0B93002A9798 /* SpeakerTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerTestView.swift; sourceTree = "<group>"; };
+		A8A99F022A8C5DC80013E6C7 /* PickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerView.swift; sourceTree = "<group>"; };
+		A8DAEC692E6918D40082027E /* Page.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Page.swift; sourceTree = "<group>"; };
+		A8DAEC6B2E6918D60082027E /* Tile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tile.swift; sourceTree = "<group>"; };
+		A8DAEC6D2E6918D90082027E /* TileGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileGridView.swift; sourceTree = "<group>"; };
+		A8E222052D0FCF1B002710C0 /* FavoritesList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesList.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A8E222072D0FDA22002710C0 /* Extras */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Extras; sourceTree = "<group>"; };
+		A8E222082D0FDA3B002710C0 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A82D05E92A522BBA004DC550 /* Frameworks */ = {
@@ -55,13 +80,19 @@
 		A82D05EE2A522BBB004DC550 /* TalkToMe */ = {
 			isa = PBXGroup;
 			children = (
-				A82D05EF2A522BBB004DC550 /* TalkToMeApp.swift */,
-				A82D05F12A522BBB004DC550 /* ContentView.swift */,
-				A82D05F32A522BBC004DC550 /* Assets.xcassets */,
-				A82D05F82A522BBC004DC550 /* Item.swift */,
 				A82D05FA2A522BBC004DC550 /* TalkToMe.entitlements */,
 				A82D05FB2A522BBC004DC550 /* Info.plist */,
+				A82D05EF2A522BBB004DC550 /* TalkToMeApp.swift */,
+				A84B3F292A59F6FD0013A493 /* Views */,
+				A8E222082D0FDA3B002710C0 /* Models */,
+				A8E222072D0FDA22002710C0 /* Extras */,
+				A82D05F32A522BBC004DC550 /* Assets.xcassets */,
 				A82D05F52A522BBC004DC550 /* Preview Content */,
+				A8DAEC692E6918D40082027E /* Page.swift */,
+				A8DAEC6B2E6918D60082027E /* Tile.swift */,
+				A8DAEC6D2E6918D90082027E /* TileGridView.swift */,
+				A8380E952E69579900E9E58B /* FileName.swift */,
+				A8380E972E69579A00E9E58B /* ModelSetup.swift */,
 			);
 			path = TalkToMe;
 			sourceTree = "<group>";
@@ -72,6 +103,20 @@
 				A82D05F62A522BBC004DC550 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		A84B3F292A59F6FD0013A493 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A82D05F12A522BBB004DC550 /* MainView.swift */,
+				A84B3F252A59F3A30013A493 /* MessageView.swift */,
+				A84B3F212A59A9470013A493 /* HeaderView.swift */,
+				A8A99F022A8C5DC80013E6C7 /* PickerView.swift */,
+				A88CBA0E2D0D0B93002A9798 /* SpeakerTestView.swift */,
+				A8E222052D0FCF1B002710C0 /* FavoritesList.swift */,
+				A82D06032A522E9D004DC550 /* SettingsView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -88,6 +133,10 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A8E222072D0FDA22002710C0 /* Extras */,
+				A8E222082D0FDA3B002710C0 /* Models */,
 			);
 			name = TalkToMe;
 			productName = TalkToMe;
@@ -144,9 +193,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A82D05F22A522BBB004DC550 /* ContentView.swift in Sources */,
-				A82D05F92A522BBC004DC550 /* Item.swift in Sources */,
+				A8DAEC6A2E6918D40082027E /* Page.swift in Sources */,
+				A8DAEC6C2E6918D60082027E /* Tile.swift in Sources */,
+				A82D05F22A522BBB004DC550 /* MainView.swift in Sources */,
+				A8DAEC6E2E6918D90082027E /* TileGridView.swift in Sources */,
 				A82D05F02A522BBB004DC550 /* TalkToMeApp.swift in Sources */,
+				A84B3F262A59F3A30013A493 /* MessageView.swift in Sources */,
+				A8380E962E69579900E9E58B /* FileName.swift in Sources */,
+				A88CBA0F2D0D0B93002A9798 /* SpeakerTestView.swift in Sources */,
+				A84B3F222A59A9470013A493 /* HeaderView.swift in Sources */,
+				A82D06042A522E9D004DC550 /* SettingsView.swift in Sources */,
+				A8A99F032A8C5DC80013E6C7 /* PickerView.swift in Sources */,
+				A8E222062D0FCF1B002710C0 /* FavoritesList.swift in Sources */,
+				A8380E982E69579A00E9E58B /* ModelSetup.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,8 +347,9 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -319,8 +379,9 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
