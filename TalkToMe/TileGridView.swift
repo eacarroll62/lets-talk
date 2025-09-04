@@ -1,6 +1,6 @@
 //
 //  TileGridView.swift
-//  TalkToMe
+//  Let's Talk
 //
 //  Created by Eric Carroll on 9/3/25.
 //
@@ -12,41 +12,74 @@ struct TileGridView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Speaker.self) private var speaker
 
-    // Hold a binding to the current page so we can reassign it (navigate)
     var currentPage: Binding<Page>
 
-    // iPad-first: default to 6 columns; adapt down on compact width
     @Environment(\.horizontalSizeClass) private var hSizeClass
+    @AppStorage("gridSizePreference") private var gridSizeRaw: String = SettingsView.GridSizePreference.medium.rawValue
+
+    @State private var isPresentingEditor: Bool = false
+    @State private var editingTile: Tile? = nil
 
     var body: some View {
         let columns = gridColumns()
 
         ScrollView {
             LazyVGrid(columns: columns, spacing: 16) {
-                // Navigation helpers (Back, Home) if not root
                 if currentPage.wrappedValue.isRoot == false {
-                    navTile(systemName: "arrow.backward.circle.fill", label: "Back") {
+                    navTile(systemName: "arrow.backward.circle.fill", label: String(localized: "Back")) {
                         navigateBack()
                     }
-                    navTile(systemName: "house.fill", label: "Home") {
+                    navTile(systemName: "house.fill", label: String(localized: "Home")) {
                         navigateHome()
                     }
                 }
+
+                addTileButton()
 
                 ForEach(sortedTiles()) { tile in
                     TileButton(tile: tile) {
                         handleTap(tile)
                     }
+                    .contextMenu {
+                        Button(String(localized: "Edit")) { startEditing(tile) }
+                        Button(String(localized: "Move Up")) { move(tile, direction: -1) }
+                        Button(String(localized: "Move Down")) { move(tile, direction: +1) }
+                        Button(String(localized: "Delete"), role: .destructive) { delete(tile) }
+                    }
+                    .onLongPressGesture {
+                        startEditing(tile)
+                    }
+                    .accessibilityLabel(Text(tile.text))
+                    .accessibilityHint(Text(tile.destinationPage == nil
+                                            ? String(localized: "Speaks this word")
+                                            : String(localized: "Opens category")))
                 }
             }
             .padding()
         }
         .navigationTitle(currentPage.wrappedValue.name)
+        .sheet(isPresented: $isPresentingEditor, onDismiss: {
+            editingTile = nil
+        }) {
+            TileEditorView(
+                page: currentPage.wrappedValue,
+                tileToEdit: editingTile
+            )
+            .environment(speaker)
+        }
     }
 
     private func gridColumns() -> [GridItem] {
+        let pref = SettingsView.GridSizePreference(rawValue: gridSizeRaw) ?? .medium
         let isCompact = hSizeClass == .compact
-        let count = isCompact ? 4 : 6
+        let base = isCompact ? 4 : 6
+        let count: Int = {
+            switch pref {
+            case .small: return base + 2
+            case .medium: return base
+            case .large: return max(2, base - 2)
+            }
+        }()
         return Array(repeating: GridItem(.flexible(minimum: 100), spacing: 16), count: count)
     }
 
@@ -77,7 +110,32 @@ struct TileGridView: View {
         speaker.speak(phrase)
     }
 
-    // Simple nav tile
+    private func startEditing(_ tile: Tile) {
+        editingTile = tile
+        isPresentingEditor = true
+    }
+
+    private func move(_ tile: Tile, direction: Int) {
+        var tiles = sortedTiles()
+        guard let idx = tiles.firstIndex(where: { $0.id == tile.id }) else { return }
+        let newIndex = idx + direction
+        guard newIndex >= 0 && newIndex < tiles.count else { return }
+        tiles.swapAt(idx, newIndex)
+        for (i, t) in tiles.enumerated() {
+            t.order = i
+        }
+        try? modelContext.save()
+    }
+
+    private func delete(_ tile: Tile) {
+        TileImagesStorage.delete(relativePath: tile.imageRelativePath)
+        if let index = currentPage.wrappedValue.tiles.firstIndex(where: { $0.id == tile.id }) {
+            currentPage.wrappedValue.tiles.remove(at: index)
+        }
+        modelContext.delete(tile)
+        try? modelContext.save()
+    }
+
     @ViewBuilder
     private func navTile(systemName: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -94,6 +152,28 @@ struct TileGridView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(Text(label))
+    }
+
+    @ViewBuilder
+    private func addTileButton() -> some View {
+        Button(action: { isPresentingEditor = true }) {
+            VStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 42, weight: .bold))
+                Text(String(localized: "Add"))
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity, minHeight: 110)
+            .padding()
+            .background(Color.green.opacity(0.15))
+            .foregroundColor(.green)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(String(localized: "Add Tile")))
+        .accessibilityHint(Text(String(localized: "Create a new tile")))
     }
 }
 
@@ -101,20 +181,30 @@ private struct TileButton: View {
     let tile: Tile
     let action: () -> Void
 
+    private var sizeMultiplier: CGFloat {
+        CGFloat(tile.size ?? 1.0)
+    }
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                if let symbol = tile.symbolName, !symbol.isEmpty {
+                if let url = tile.imageURL, let uiImage = UIImage(contentsOfFile: url.path) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 60 * sizeMultiplier)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                } else if let symbol = tile.symbolName, !symbol.isEmpty {
                     Image(systemName: symbol)
-                        .font(.system(size: 42, weight: .bold))
+                        .font(.system(size: 42 * sizeMultiplier, weight: .bold))
                 }
                 Text(tile.text)
-                    .font(.headline)
+                    .font(.system(size: 17 * sizeMultiplier, weight: .semibold))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.6)
             }
-            .frame(maxWidth: .infinity, minHeight: 110)
+            .frame(maxWidth: .infinity, minHeight: 110 * sizeMultiplier)
             .padding()
             .background(tileBackground())
             .foregroundColor(.primary)
@@ -133,7 +223,6 @@ private struct TileButton: View {
 }
 
 private extension Color {
-    // Minimal hex -> Color helper (#RRGGBB or RRGGBB)
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         if hexSanitized.hasPrefix("#") {

@@ -1,6 +1,6 @@
 //
-//  TalkToMeApp.swift
-//  TalkToMe
+//  LetsTalkApp.swift
+//  Let's Talk
 //
 //  Created by Eric Carroll on 7/2/23.
 //
@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct TalkToMeApp: App {
+struct LetsTalkApp: App {
     @State private var speaker: Speaker = Speaker()
     
     var body: some Scene {
@@ -20,4 +20,3 @@ struct TalkToMeApp: App {
         }
     }
 }
-

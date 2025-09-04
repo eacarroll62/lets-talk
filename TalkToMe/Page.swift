@@ -15,11 +15,11 @@ final class Page: Identifiable {
     var order: Int
     var isRoot: Bool
 
-    // Relationships
-    // Inverse to Tile.page (owning tiles for this page)
+    // Relationships (inferred by SwiftData)
+    // Inverse of Tile.page
     var tiles: [Tile]
 
-    // Hierarchical pages: children <-> parent
+    // Hierarchical pages: children <-> parent (inferred)
     var parent: Page?
     var children: [Page]
 

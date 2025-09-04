@@ -1,6 +1,6 @@
 //
 //  MessageView.swift
-//  TalkToMe
+//  Let's Talk
 //
 //  Created by Eric Carroll on 7/8/23.
 //
@@ -14,27 +14,58 @@ struct MessageView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Speaker.self) var speaker
 
-    @AppStorage("controlStyle") private var controlStyle: ControlsStyle = .compact // AppStorage for persistence
-    
+    @AppStorage("controlStyle") private var controlStyle: ControlsStyle = .compact
+    @AppStorage("language") private var languageSetting: String = "en-US"
+    @AppStorage("predictionEnabled") private var predictionEnabled: Bool = true
+
     enum Field { case input }
     @FocusState private var focusedField: Field?
-    
+
     var favorites: [Favorite]
+
+    @State private var suggestions: [String] = []
 
     var body: some View {
         @Bindable var speaker = speaker
-        
-        VStack(alignment: .leading) {
-            HeaderView(imageString: "ellipsis.message", textString: "Message", backColor: Color.clear, showButton: false)
-            
-            TextField("Enter your message", text: $speaker.text, axis: .vertical)
+
+        VStack(alignment: .leading, spacing: 12) {
+            HeaderView(imageString: "ellipsis.message", textString: String(localized: "Message"), backColor: Color.clear, showButton: false)
+
+            TextField(String(localized: "Enter your message"), text: $speaker.text, axis: .vertical)
                 .foregroundColor(.primary)
                 .textFieldStyle(.roundedBorder)
                 .focused($focusedField, equals: .input)
                 .textInputAutocapitalization(.sentences)
                 .lineLimit(5...5)
                 .overlay(controlsOverlay(), alignment: .topTrailing)
-            
+                .onChange(of: speaker.text) { _, _ in
+                    refreshSuggestions()
+                }
+                .onAppear {
+                    refreshSuggestions()
+                }
+
+            if predictionEnabled, !suggestions.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(suggestions, id: \.self) { word in
+                            Button {
+                                insertSuggestion(word)
+                            } label: {
+                                Text(word)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue.opacity(0.15))
+                                    .foregroundStyle(.blue)
+                                    .clipShape(Capsule())
+                            }
+                            .accessibilityLabel(Text(String(localized: "Suggestion \(word)")))
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
             if controlStyle == .large {
                 HStack {
                     playButton()
@@ -56,21 +87,54 @@ struct MessageView: View {
                 }
             }
         }
+        .onAppear {
+            // Learn from saved favorites to personalize predictions
+            if predictionEnabled {
+                favorites.forEach { PredictionService.shared.learn(from: $0.text, languageCode: langCode()) }
+            }
+        }
     }
-    
+
+    private func refreshSuggestions() {
+        guard predictionEnabled else {
+            suggestions = []
+            return
+        }
+        suggestions = PredictionService.shared.suggestions(for: speaker.text, languageCode: langCode(), limit: 5)
+    }
+
+    private func langCode() -> String {
+        languageSetting.hasPrefix("es") ? "es" : "en"
+    }
+
+    private func insertSuggestion(_ word: String) {
+        var text = speaker.text
+        if text.isEmpty || text.last?.isWhitespace == true {
+            text += word
+        } else {
+            text += " " + word
+        }
+        speaker.text = text
+        refreshSuggestions()
+    }
+
     @MainActor
     private func saveFavorite(_ text: String) {
         let newOrder = favorites.count
         let newFavorite = Favorite(text: text, order: newOrder)
         modelContext.insert(newFavorite)
-        
+
+        if predictionEnabled {
+            PredictionService.shared.learn(from: text, languageCode: langCode())
+        }
+
         do {
             try modelContext.save()
         } catch {
             print("Error saving to modelContext: \(error)")
         }
     }
-    
+
     // MARK: - Subviews and Helpers
 
     private func controlsOverlay() -> some View {
@@ -83,10 +147,11 @@ struct MessageView: View {
             Spacer()
         }
     }
-    
+
     private func clearButton() -> some View {
         Button(action: {
             speaker.text = ""
+            refreshSuggestions()
         }) {
             Image(systemName: "clear")
                 .resizable()
@@ -94,7 +159,7 @@ struct MessageView: View {
                 .aspectRatio(contentMode: .fit)
                 .tint(Color.hunterGreen)
         }
-        .accessibilityLabel("Clear Message Box")
+        .accessibilityLabel(Text(String(localized: "Clear Message Box")))
     }
 
     private func playButton() -> some View {
@@ -111,7 +176,7 @@ struct MessageView: View {
                 .aspectRatio(contentMode: .fit)
                 .tint(Color.hunterGreen)
         }
-        .accessibilityLabel("Play Message")
+        .accessibilityLabel(Text(String(localized: "Play Message")))
     }
 
     private func saveButton() -> some View {
@@ -126,12 +191,12 @@ struct MessageView: View {
                 .aspectRatio(contentMode: .fit)
                 .tint(Color.hunterGreen)
         }
-        .accessibilityLabel("Save Message as Favorite")
+        .accessibilityLabel(Text(String(localized: "Save Message as Favorite")))
     }
 }
+
 #Preview {
     MessageView(favorites: [Favorite(text: "Hello World", order: 0)])
         .modelContainer(for: [Favorite.self], inMemory: true)
         .environment(Speaker())
 }
-

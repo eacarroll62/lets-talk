@@ -22,6 +22,11 @@ final class Tile: Identifiable {
     var destinationPage: Page?
     var page: Page?
 
+    // New: image storage (relative path inside app documents), per-tile size, and language
+    var imageRelativePath: String?
+    var size: Double? // 0.5 ... 2.0 (multiplier); nil = default
+    var languageCode: String? // e.g., "en", "es"
+
     init(
         id: UUID = UUID(),
         text: String,
@@ -31,7 +36,10 @@ final class Tile: Identifiable {
         isCore: Bool = false,
         pronunciationOverride: String? = nil,
         destinationPage: Page? = nil,
-        page: Page? = nil
+        page: Page? = nil,
+        imageRelativePath: String? = nil,
+        size: Double? = nil,
+        languageCode: String? = nil
     ) {
         self.id = id
         self.text = text
@@ -42,5 +50,46 @@ final class Tile: Identifiable {
         self.pronunciationOverride = pronunciationOverride
         self.destinationPage = destinationPage
         self.page = page
+        self.imageRelativePath = imageRelativePath
+        self.size = size
+        self.languageCode = languageCode
     }
 }
+
+extension Tile {
+    // Resolve an absolute URL from the stored relative path in Documents/TileImages
+    var imageURL: URL? {
+        guard let relative = imageRelativePath else { return nil }
+        return TileImagesStorage.imagesDirectory.appendingPathComponent(relative)
+    }
+}
+
+enum TileImagesStorage {
+    static var imagesDirectory: URL {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let dir = docs.appendingPathComponent("TileImages", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: dir.path) {
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        return dir
+    }
+
+    static func savePNG(_ data: Data) -> String? {
+        let filename = UUID().uuidString + ".png"
+        let url = imagesDirectory.appendingPathComponent(filename)
+        do {
+            try data.write(to: url, options: .atomic)
+            return filename
+        } catch {
+            print("Failed to save tile image: \(error)")
+            return nil
+        }
+    }
+
+    static func delete(relativePath: String?) {
+        guard let relativePath else { return }
+        let url = imagesDirectory.appendingPathComponent(relativePath)
+        try? FileManager.default.removeItem(at: url)
+    }
+}
+

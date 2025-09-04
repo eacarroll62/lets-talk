@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  TalkToMe
+//  Let's Talk
 //
 //  Created by Eric Carroll on 7/2/23.
 //
@@ -14,6 +14,7 @@ struct MainView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Speaker.self) private var speaker
     @State private var showSettings: Bool = false
+    @State private var showPagesManager: Bool = false
     @State private var searchText: String = ""
     @State private var selectedFavorite: Favorite?
 
@@ -22,30 +23,48 @@ struct MainView: View {
     @Query(sort: \Favorite.order) var favorites: [Favorite]
     @Query(sort: \Page.order) private var pages: [Page]
 
+    @AppStorage("language") private var languageSetting: String = "en-US"
+
     var body: some View {
         NavigationStack {
             content
                 .safeAreaPadding()
-                .navigationTitle("Talk To Me")
+                .navigationTitle(String(localized: "Let's Talk"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
+                        HStack {
+                            Button {
+                                showPagesManager.toggle()
+                            } label: {
+                                Image(systemName: "folder")
+                            }
+                            .accessibilityLabel(Text(String(localized: "Manage Pages")))
+                            EditButton()
+                        }
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: { showSettings.toggle() }) {
                             Image(systemName: "line.horizontal.3")
                         }
+                        .accessibilityLabel(Text(String(localized: "Open Settings")))
                     }
                 }
                 .sheet(isPresented: $showSettings) { SettingsView() }
+                .sheet(isPresented: $showPagesManager) { PagesManagerView(rootPage: rootPage()) }
                 .onAppear {
                     seedIfNeeded()
                     if currentPage == nil {
                         currentPage = pages.first(where: { $0.isRoot }) ?? pages.first
                     }
+                    // Train predictor from existing data
+                    let langCode = languageSetting.hasPrefix("es") ? "es" : "en"
+                    let tileTexts = pages.flatMap { $0.tiles.map { $0.text } }
+                    let favTexts = favorites.map { $0.text }
+                    PredictionService.shared.learn(from: tileTexts + favTexts, languageCode: langCode)
+
                     DispatchQueue.main.async {
-                        speaker.speak("Welcome to the Talk To Me app!")
+                        speaker.speak(String(localized: "Welcome to the Let's Talk app!"))
                     }
                 }
         }
@@ -69,7 +88,7 @@ struct MainView: View {
                 .frame(maxWidth: .infinity)
             }
         } else {
-            ProgressView("Loading board…")
+            ProgressView(String(localized: "Loading board…"))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
@@ -89,6 +108,10 @@ struct MainView: View {
         }
 
         try? modelContext.save()
+    }
+
+    private func rootPage() -> Page? {
+        pages.first(where: { $0.isRoot }) ?? pages.first
     }
 
     // Seed a simple root page with core words on first launch
