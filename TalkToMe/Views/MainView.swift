@@ -22,6 +22,8 @@ struct MainView: View {
 
     @Query(sort: \Favorite.order) var favorites: [Favorite]
     @Query(sort: \Page.order) private var pages: [Page]
+    @Query(sort: \Recent.timestamp, order: .reverse) private var recents: [Recent]
+    @Query(sort: \QuickPhrase.order) private var quickPhrases: [QuickPhrase]
 
     @AppStorage("language") private var languageSetting: String = "en-US"
 
@@ -53,7 +55,8 @@ struct MainView: View {
                 .sheet(isPresented: $showSettings) { SettingsView() }
                 .sheet(isPresented: $showPagesManager) { PagesManagerView(rootPage: rootPage()) }
                 .onAppear {
-                    seedIfNeeded()
+                    // Seed as needed
+                    SeedingService.seedAllIfNeeded(modelContext: modelContext, pages: pages)
                     if currentPage == nil {
                         currentPage = pages.first(where: { $0.isRoot }) ?? pages.first
                     }
@@ -73,12 +76,31 @@ struct MainView: View {
     @ViewBuilder
     private var content: some View {
         if let _ = currentPage {
-            VStack(spacing: 16) {
-                // MessageView pinned at the top
+            VStack(spacing: 12) {
                 MessageView(favorites: favorites)
                     .containerStyle()
 
-                // Scrollable tiles below
+                if !quickPhrases.isEmpty {
+                    QuickPhrasesRow(phrases: quickPhrases.map { $0.text }) { phrase in
+                        insertIntoMessage(phrase)
+                    }
+                    .containerStyle()
+                }
+
+                if !recents.isEmpty {
+                    RecentsRow(items: recents) { text in
+                        insertIntoMessage(text)
+                    }
+                    .containerStyle()
+                }
+
+                if let currentPage {
+                    BreadcrumbBar(current: currentPage) { page in
+                        self.currentPage = page
+                    }
+                    .containerStyle()
+                }
+
                 TileGridView(currentPage: Binding<Page>(
                     get: { self.currentPage! },
                     set: { newValue in
@@ -92,61 +114,17 @@ struct MainView: View {
         }
     }
 
-    private func deleteFavorite(at offsets: IndexSet) {
-        for index in offsets {
-            modelContext.delete(favorites[index])
-        }
-    }
-
-    private func moveFavorite(from source: IndexSet, to destination: Int) {
-        var reorderedFavorites = favorites.sorted(by: { $0.order < $1.order })
-        reorderedFavorites.move(fromOffsets: source, toOffset: destination)
-
-        for (index, favorite) in reorderedFavorites.enumerated() {
-            favorite.order = index
-        }
-
-        try? modelContext.save()
+    private func insertIntoMessage(_ text: String) {
+        speaker.text = speaker.text.isEmpty ? text : speaker.text + " " + text
     }
 
     private func rootPage() -> Page? {
         pages.first(where: { $0.isRoot }) ?? pages.first
     }
-
-    // Seed a simple root page with core words on first launch
-    private func seedIfNeeded() {
-        guard pages.isEmpty else { return }
-
-        let root = Page(name: "Home", order: 0, isRoot: true)
-        modelContext.insert(root)
-
-        let coreWords: [(String, String?, String?)] = [
-            ("I", "person.fill", "#F9D65C"),
-            ("want", "hand.point.right.fill", "#AEDFF7"),
-            ("more", "plus.circle.fill", "#B5E48C"),
-            ("help", "hand.raised.fill", "#FFD6E0"),
-            ("yes", "checkmark.circle.fill", "#ACE7FF"),
-            ("no", "xmark.circle.fill", "#FFADAD"),
-            ("you", "person.2.fill", "#E4C1F9"),
-            ("like", "hand.thumbsup.fill", "#C7F9CC"),
-        ]
-
-        for (idx, item) in coreWords.enumerated() {
-            let tile = Tile(text: item.0, symbolName: item.1, colorHex: item.2, order: idx, isCore: true, page: root)
-            modelContext.insert(tile)
-            root.tiles.append(tile)
-        }
-
-        do {
-            try modelContext.save()
-        } catch {
-            print("Seeding error: \(error)")
-        }
-    }
 }
 
 #Preview {
     MainView()
-        .modelContainer(for: [Favorite.self, Page.self, Tile.self], inMemory: true)
+        .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }

@@ -17,6 +17,12 @@
 		A8380EA02E69627B00E9E58B /* PredictionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380E9F2E69627B00E9E58B /* PredictionService.swift */; };
 		A8380EA22E69638900E9E58B /* PagesManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EA12E69638900E9E58B /* PagesManagerView.swift */; };
 		A8380EA42E69638F00E9E58B /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EA32E69638F00E9E58B /* ExportService.swift */; };
+		A8380EA92E696DCA00E9E58B /* Recent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EA52E696C7800E9E58B /* Recent.swift */; };
+		A8380EAA2E696DD800E9E58B /* QuickPhrase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EA62E696C7800E9E58B /* QuickPhrase.swift */; };
+		A8380EAB2E696DE500E9E58B /* RecentsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EA72E696C7A00E9E58B /* RecentsRow.swift */; };
+		A8380EAC2E696DEF00E9E58B /* QuickPhrasesRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EA82E696C7B00E9E58B /* QuickPhrasesRow.swift */; };
+		A8380EAE2E6A4C8800E9E58B /* BreadcrumbBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EAD2E6A4C8800E9E58B /* BreadcrumbBar.swift */; };
+		A8380EB02E6A503900E9E58B /* SeedingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EAF2E6A503900E9E58B /* SeedingService.swift */; };
 		A84B3F222A59A9470013A493 /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84B3F212A59A9470013A493 /* HeaderView.swift */; };
 		A84B3F262A59F3A30013A493 /* MessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84B3F252A59F3A30013A493 /* MessageView.swift */; };
 		A88CBA0F2D0D0B93002A9798 /* SpeakerTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88CBA0E2D0D0B93002A9798 /* SpeakerTestView.swift */; };
@@ -41,6 +47,12 @@
 		A8380E9F2E69627B00E9E58B /* PredictionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionService.swift; sourceTree = "<group>"; };
 		A8380EA12E69638900E9E58B /* PagesManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PagesManagerView.swift; sourceTree = "<group>"; };
 		A8380EA32E69638F00E9E58B /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
+		A8380EA52E696C7800E9E58B /* Recent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recent.swift; sourceTree = "<group>"; };
+		A8380EA62E696C7800E9E58B /* QuickPhrase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickPhrase.swift; sourceTree = "<group>"; };
+		A8380EA72E696C7A00E9E58B /* RecentsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentsRow.swift; sourceTree = "<group>"; };
+		A8380EA82E696C7B00E9E58B /* QuickPhrasesRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickPhrasesRow.swift; sourceTree = "<group>"; };
+		A8380EAD2E6A4C8800E9E58B /* BreadcrumbBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreadcrumbBar.swift; sourceTree = "<group>"; };
+		A8380EAF2E6A503900E9E58B /* SeedingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedingService.swift; sourceTree = "<group>"; };
 		A84B3F212A59A9470013A493 /* HeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
 		A84B3F252A59F3A30013A493 /* MessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageView.swift; sourceTree = "<group>"; };
 		A88CBA0E2D0D0B93002A9798 /* SpeakerTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerTestView.swift; sourceTree = "<group>"; };
@@ -102,6 +114,10 @@
 				A8380E9F2E69627B00E9E58B /* PredictionService.swift */,
 				A8380EA12E69638900E9E58B /* PagesManagerView.swift */,
 				A8380EA32E69638F00E9E58B /* ExportService.swift */,
+				A8380EA52E696C7800E9E58B /* Recent.swift */,
+				A8380EA62E696C7800E9E58B /* QuickPhrase.swift */,
+				A8380EA72E696C7A00E9E58B /* RecentsRow.swift */,
+				A8380EA82E696C7B00E9E58B /* QuickPhrasesRow.swift */,
 			);
 			path = TalkToMe;
 			sourceTree = "<group>";
@@ -124,6 +140,8 @@
 				A88CBA0E2D0D0B93002A9798 /* SpeakerTestView.swift */,
 				A8E222052D0FCF1B002710C0 /* FavoritesList.swift */,
 				A82D06032A522E9D004DC550 /* SettingsView.swift */,
+				A8380EAD2E6A4C8800E9E58B /* BreadcrumbBar.swift */,
+				A8380EAF2E6A503900E9E58B /* SeedingService.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -204,11 +222,16 @@
 			files = (
 				A8380E9E2E69623400E9E58B /* CameraCaptureView.swift in Sources */,
 				A8DAEC6A2E6918D40082027E /* Page.swift in Sources */,
+				A8380EAE2E6A4C8800E9E58B /* BreadcrumbBar.swift in Sources */,
 				A8DAEC6C2E6918D60082027E /* Tile.swift in Sources */,
 				A82D05F22A522BBB004DC550 /* MainView.swift in Sources */,
+				A8380EAB2E696DE500E9E58B /* RecentsRow.swift in Sources */,
 				A8380EA02E69627B00E9E58B /* PredictionService.swift in Sources */,
 				A8380EA42E69638F00E9E58B /* ExportService.swift in Sources */,
+				A8380EAC2E696DEF00E9E58B /* QuickPhrasesRow.swift in Sources */,
+				A8380EA92E696DCA00E9E58B /* Recent.swift in Sources */,
 				A8DAEC6E2E6918D90082027E /* TileGridView.swift in Sources */,
+				A8380EAA2E696DD800E9E58B /* QuickPhrase.swift in Sources */,
 				A82D05F02A522BBB004DC550 /* TalkToMeApp.swift in Sources */,
 				A84B3F262A59F3A30013A493 /* MessageView.swift in Sources */,
 				A8380EA22E69638900E9E58B /* PagesManagerView.swift in Sources */,
@@ -216,6 +239,7 @@
 				A84B3F222A59A9470013A493 /* HeaderView.swift in Sources */,
 				A82D06042A522E9D004DC550 /* SettingsView.swift in Sources */,
 				A8A99F032A8C5DC80013E6C7 /* PickerView.swift in Sources */,
+				A8380EB02E6A503900E9E58B /* SeedingService.swift in Sources */,
 				A8E222062D0FCF1B002710C0 /* FavoritesList.swift in Sources */,
 				A8380E9C2E69623200E9E58B /* TileEditorView.swift in Sources */,
 			);
@@ -356,11 +380,13 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TalkToMe/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TalkToMe;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone for speech input.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationLandscapeLeft;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -388,11 +414,13 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TalkToMe/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TalkToMe;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone for speech input.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationLandscapeLeft;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -168,6 +168,8 @@ struct MessageView: View {
                 speaker.continueSpeaking()
             } else {
                 speaker.speak(speaker.text)
+                // Log the full message to Recents
+                logRecent(text: speaker.text)
             }
         }) {
             Image(systemName: "play.circle.fill")
@@ -193,10 +195,39 @@ struct MessageView: View {
         }
         .accessibilityLabel(Text(String(localized: "Save Message as Favorite")))
     }
+
+    // MARK: - Recents logging
+
+    private func logRecent(text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let predicate = #Predicate<Recent> { $0.text == trimmed }
+        var descriptor = FetchDescriptor<Recent>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        if let existing = try? modelContext.fetch(descriptor).first {
+            existing.count += 1
+            existing.timestamp = Date()
+        } else {
+            modelContext.insert(Recent(text: trimmed, timestamp: Date(), count: 1))
+        }
+
+        pruneRecents(maxCount: 20)
+        try? modelContext.save()
+    }
+
+    private func pruneRecents(maxCount: Int) {
+        var descriptor = FetchDescriptor<Recent>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
+        if let all = try? modelContext.fetch(descriptor), all.count > maxCount {
+            for r in all.dropFirst(maxCount) {
+                modelContext.delete(r)
+            }
+        }
+    }
 }
 
 #Preview {
     MessageView(favorites: [Favorite(text: "Hello World", order: 0)])
-        .modelContainer(for: [Favorite.self], inMemory: true)
+        .modelContainer(for: [Favorite.self, Recent.self], inMemory: true)
         .environment(Speaker())
 }

@@ -100,8 +100,6 @@ struct TileEditorView: View {
                             if !newValue {
                                 destinationPage = nil
                                 createNewPage = false
-                            } else {
-                                // default to current page as destination? better: pick explicitly
                             }
                         }
                     ))
@@ -109,7 +107,14 @@ struct TileEditorView: View {
                     if destinationPage != nil || createNewPage {
                         Picker("Existing Page", selection: Binding<Page?>(
                             get: { destinationPage },
-                            set: { destinationPage = $0; createNewPage = false }
+                            set: { newVal in
+                                destinationPage = newVal
+                                createNewPage = false
+                                // Auto-parent existing page if missing
+                                if let dest = newVal, dest.parent == nil {
+                                    dest.parent = page
+                                }
+                            }
                         )) {
                             Text("None").tag(Page?.none)
                             ForEach(pages) { p in
@@ -175,13 +180,11 @@ struct TileEditorView: View {
         // Manage image saving
         var imageRelativePath: String? = tileToEdit?.imageRelativePath
         if let data = selectedImageData ?? cameraImageData {
-            // Replace existing image
             if let existing = imageRelativePath { TileImagesStorage.delete(relativePath: existing) }
             imageRelativePath = TileImagesStorage.savePNG(data)
         }
 
         if let edit = tileToEdit {
-            // Edit existing
             edit.text = text
             edit.colorHex = colorHex
             edit.symbolName = symbolName.isEmpty ? nil : symbolName
@@ -191,7 +194,6 @@ struct TileEditorView: View {
             edit.destinationPage = dest
             edit.imageRelativePath = imageRelativePath
         } else {
-            // Create new
             let newOrder = page.tiles.count
             let tile = Tile(
                 text: text,
@@ -207,7 +209,6 @@ struct TileEditorView: View {
                 languageCode: languageCode
             )
             modelContext.insert(tile)
-            // maintain relationship
             page.tiles.append(tile)
         }
 
@@ -219,4 +220,3 @@ struct TileEditorView: View {
         dismiss()
     }
 }
-

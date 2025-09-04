@@ -15,10 +15,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    // Data to export
     @Query(sort: \Page.order) private var pages: [Page]
     @Query(sort: \Favorite.order) private var favorites: [Favorite]
-    // Tiles aren’t directly queryable as a flat list with SwiftData, but we can gather from pages.
     private var allTiles: [Tile] { pages.flatMap { $0.tiles } }
 
     @AppStorage("identifier") private var identifier: String = "com.apple.voice.compact.en-US.Samantha"
@@ -27,11 +25,10 @@ struct SettingsView: View {
     @AppStorage("pitch") private var pitch: Double = 1.0
     @AppStorage("volume") private var volume: Double = 0.8
     @AppStorage("controlStyle") private var controlStyle: ControlsStyle = .compact
-
-    // Audio mixing option
     @AppStorage("audioMixingOption") private var audioMixingRaw: String = Speaker.AudioMixingOption.duckOthers.rawValue
+    @AppStorage("gridSizePreference") private var gridSizeRaw: String = GridSizePreference.medium.rawValue
+    @AppStorage("predictionEnabled") private var predictionEnabled: Bool = true
 
-    // New: grid size preference for tiles
     enum GridSizePreference: String, CaseIterable, Identifiable {
         case small, medium, large
         var id: String { rawValue }
@@ -43,10 +40,6 @@ struct SettingsView: View {
             }
         }
     }
-    @AppStorage("gridSizePreference") private var gridSizeRaw: String = GridSizePreference.medium.rawValue
-
-    // New: prediction toggle
-    @AppStorage("predictionEnabled") private var predictionEnabled: Bool = true
 
     @State private var availableLanguages: [String] = []
     @State private var availableVoices: [AVSpeechSynthesisVoice] = []
@@ -56,6 +49,9 @@ struct SettingsView: View {
     @State private var isExporting: Bool = false
     @State private var isImporting: Bool = false
     @State private var lastExportError: String?
+
+    // Development
+    @State private var showReseedConfirm: Bool = false
 
     private let rateMin = Double(AVSpeechUtteranceMinimumSpeechRate)
     private let rateMax = Double(AVSpeechUtteranceMaximumSpeechRate)
@@ -69,9 +65,8 @@ struct SettingsView: View {
                             Text(lang).tag(lang)
                         }
                     }
-                    .onChange(of: language) { _, newValue in
+                    .onChange(of: language) { _, _ in
                         refreshVoices()
-                        // Reset the predictor on language change so it can re-learn for the new language
                         PredictionService.shared.reset()
                     }
 
@@ -89,7 +84,6 @@ struct SettingsView: View {
 
                 Section(header: Text(String(localized: "Prediction"))) {
                     Toggle(String(localized: "Enable Prediction"), isOn: $predictionEnabled)
-                        .accessibilityHint(Text(String(localized: "Show word suggestions while typing")))
                     Text(String(localized: "Suggestions adapt to your tiles and favorites."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -127,7 +121,6 @@ struct SettingsView: View {
                         testSpeech()
                     }
                     .buttonStyle(BorderedProminentButtonStyle())
-                    .accessibilityLabel(Text(String(localized: "Test Speech")))
                 }
 
                 Section(header: Text(String(localized: "Audio"))) {
@@ -140,8 +133,6 @@ struct SettingsView: View {
                         let option = Speaker.AudioMixingOption(rawValue: newValue) ?? .duckOthers
                         speaker.setAudioMixingOption(option)
                     }
-                    .accessibilityLabel(Text(String(localized: "Audio Mixing Behavior")))
-                    .accessibilityHint(Text(String(localized: "Choose whether to duck or mix with other audio")))
                 }
 
                 Section(header: Text(String(localized: "Tile Size"))) {
@@ -151,8 +142,6 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .accessibilityLabel(Text(String(localized: "Tile Size")))
-                    .accessibilityHint(Text(String(localized: "Controls how many tiles fit per row")))
                 }
 
                 Section(header: Text(String(localized: "Control Settings"))) {
@@ -165,6 +154,7 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
 
+                // Backup section (unchanged content you already have)
                 Section(header: Text(String(localized: "Backup"))) {
                     if let exportURL {
                         ShareLink(item: exportURL) {
@@ -181,16 +171,12 @@ struct SettingsView: View {
                         }
                     }
                     .disabled(isExporting)
-                    .accessibilityLabel(Text(String(localized: "Export Board")))
-                    .accessibilityHint(Text(String(localized: "Create a JSON export of pages, tiles, favorites")))
 
                     Button {
                         isImporting = true
                     } label: {
                         Label(String(localized: "Import Board"), systemImage: "square.and.arrow.down.on.square")
                     }
-                    .accessibilityLabel(Text(String(localized: "Import Board")))
-                    .accessibilityHint(Text(String(localized: "Import a JSON export to restore pages, tiles, favorites")))
                     .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
                         switch result {
                         case .success(let url):
@@ -204,6 +190,27 @@ struct SettingsView: View {
                         Text(err)
                             .font(.footnote)
                             .foregroundStyle(.red)
+                    }
+                }
+
+                // Development section
+                Section(header: Text(String(localized: "Development"))) {
+                    Button(role: .destructive) {
+                        showReseedConfirm = true
+                    } label: {
+                        Label(String(localized: "Reseed Starter Pages"), systemImage: "arrow.counterclockwise.circle")
+                    }
+                    .confirmationDialog(
+                        String(localized: "Reseed Starter Pages?"),
+                        isPresented: $showReseedConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button(String(localized: "Reseed"), role: .destructive) {
+                            SeedingService.reseedAll(modelContext: modelContext)
+                        }
+                        Button(String(localized: "Cancel"), role: .cancel) {}
+                    } message: {
+                        Text(String(localized: "This will delete all pages, tiles, favorites, recents, quick phrases, and images, then rebuild the starter board."))
                     }
                 }
 
@@ -224,17 +231,12 @@ struct SettingsView: View {
     }
 
     private func fetchAvailableLanguages() {
-        // Get unique languages from system voices
-        availableLanguages = Array(Set(AVSpeechSynthesisVoice.speechVoices().map { $0.language }))
-            .sorted()
+        availableLanguages = Array(Set(AVSpeechSynthesisVoice.speechVoices().map { $0.language })).sorted()
     }
 
     private func refreshVoices() {
-        // Refresh voices for the selected language
         availableVoices = AVSpeechSynthesisVoice.speechVoices()
             .filter { $0.language.hasPrefix(language) }
-
-        // Reset identifier if necessary
         if !availableVoices.contains(where: { $0.identifier == identifier }) {
             identifier = availableVoices.first?.identifier ?? ""
         }
@@ -246,7 +248,6 @@ struct SettingsView: View {
         utterance.rate = Float(rate)
         utterance.pitchMultiplier = Float(pitch)
         utterance.volume = Float(volume)
-
         speaker.speak(utterance.speechString)
     }
 
@@ -283,6 +284,6 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
-        .modelContainer(for: [Favorite.self, Page.self, Tile.self], inMemory: true)
+        .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }

@@ -16,7 +16,7 @@ struct LetsTalkApp: App {
         WindowGroup {
             MainView()
                 .environment(speaker)
-                .modelContainer(for: [Favorite.self, Page.self, Tile.self])
+                .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self])
         }
     }
 }

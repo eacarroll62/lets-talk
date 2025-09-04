@@ -11,6 +11,7 @@ import SwiftData
 struct TileGridView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Speaker.self) private var speaker
+    @Environment(\.editMode) private var editMode
 
     var currentPage: Binding<Page>
 
@@ -22,6 +23,7 @@ struct TileGridView: View {
 
     var body: some View {
         let columns = gridColumns()
+        let isEditing = (editMode?.wrappedValue.isEditing ?? false)
 
         ScrollView {
             LazyVGrid(columns: columns, spacing: 16) {
@@ -37,23 +39,43 @@ struct TileGridView: View {
                 addTileButton()
 
                 ForEach(sortedTiles()) { tile in
-                    TileButton(tile: tile) {
-                        handleTap(tile)
-                    }
+                    TileButton(
+                        tile: tile,
+                        isEditing: isEditing,
+                        onPrimaryTap: { handleTap(tile) },
+                        onEdit: { startEditing(tile) },
+                        onDelete: { delete(tile) }
+                    )
                     .contextMenu {
                         Button(String(localized: "Edit")) { startEditing(tile) }
                         Button(String(localized: "Move Up")) { move(tile, direction: -1) }
                         Button(String(localized: "Move Down")) { move(tile, direction: +1) }
                         Button(String(localized: "Delete"), role: .destructive) { delete(tile) }
                     }
-                    .onLongPressGesture {
-                        startEditing(tile)
-                    }
+                    .onLongPressGesture { startEditing(tile) }
                     .accessibilityLabel(Text(tile.text))
                     .accessibilityHint(Text(tile.destinationPage == nil
                                             ? String(localized: "Speaks this word")
                                             : String(localized: "Opens category")))
+                    .draggable(tile.id.uuidString)
+                    .dropDestination(for: String.self) { items, _ in
+                        guard let sourceIDString = items.first,
+                              let sourceID = UUID(uuidString: sourceIDString)
+                        else { return false }
+                        reorder(from: sourceID, to: tile.id)
+                        return true
+                    } isTargeted: { _ in }
                 }
+
+                Color.clear
+                    .frame(height: 1)
+                    .dropDestination(for: String.self) { items, _ in
+                        guard let sourceIDString = items.first,
+                              let sourceID = UUID(uuidString: sourceIDString)
+                        else { return false }
+                        moveToEnd(sourceID: sourceID)
+                        return true
+                    }
             }
             .padding()
         }
@@ -102,12 +124,20 @@ struct TileGridView: View {
     }
 
     private func handleTap(_ tile: Tile) {
+        if editMode?.wrappedValue.isEditing == true { return }
+
         if let dest = tile.destinationPage {
+            // Auto-parent if missing so Back works
+            if dest.parent == nil {
+                dest.parent = currentPage.wrappedValue
+                try? modelContext.save()
+            }
             currentPage.wrappedValue = dest
             return
         }
         let phrase = tile.pronunciationOverride?.isEmpty == false ? tile.pronunciationOverride! : tile.text
         speaker.speak(phrase)
+        logRecent(text: tile.text)
     }
 
     private func startEditing(_ tile: Tile) {
@@ -121,9 +151,7 @@ struct TileGridView: View {
         let newIndex = idx + direction
         guard newIndex >= 0 && newIndex < tiles.count else { return }
         tiles.swapAt(idx, newIndex)
-        for (i, t) in tiles.enumerated() {
-            t.order = i
-        }
+        for (i, t) in tiles.enumerated() { t.order = i }
         try? modelContext.save()
     }
 
@@ -175,43 +203,125 @@ struct TileGridView: View {
         .accessibilityLabel(Text(String(localized: "Add Tile")))
         .accessibilityHint(Text(String(localized: "Create a new tile")))
     }
+
+    // MARK: - Drag & Drop
+
+    private func reorder(from sourceID: UUID, to targetID: UUID) {
+        var tiles = sortedTiles()
+        guard let fromIndex = tiles.firstIndex(where: { $0.id == sourceID }),
+              let toIndex = tiles.firstIndex(where: { $0.id == targetID }),
+              fromIndex != toIndex else { return }
+        let moving = tiles.remove(at: fromIndex)
+        tiles.insert(moving, at: toIndex)
+        for (i, t) in tiles.enumerated() { t.order = i }
+        try? modelContext.save()
+    }
+
+    private func moveToEnd(sourceID: UUID) {
+        var tiles = sortedTiles()
+        guard let fromIndex = tiles.firstIndex(where: { $0.id == sourceID }) else { return }
+        let moving = tiles.remove(at: fromIndex)
+        tiles.append(moving)
+        for (i, t) in tiles.enumerated() { t.order = i }
+        try? modelContext.save()
+    }
+
+    // MARK: - Recents logging
+
+    private func logRecent(text: String) {
+        let predicate = #Predicate<Recent> { $0.text == text }
+        var descriptor = FetchDescriptor<Recent>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        if let existing = try? modelContext.fetch(descriptor).first {
+            existing.count += 1
+            existing.timestamp = Date()
+        } else {
+            modelContext.insert(Recent(text: text, timestamp: Date(), count: 1))
+        }
+        pruneRecents(maxCount: 20)
+        try? modelContext.save()
+    }
+
+    private func pruneRecents(maxCount: Int) {
+        var descriptor = FetchDescriptor<Recent>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
+        if let all = try? modelContext.fetch(descriptor), all.count > maxCount {
+            for r in all.dropFirst(maxCount) {
+                modelContext.delete(r)
+            }
+        }
+    }
 }
 
 private struct TileButton: View {
     let tile: Tile
-    let action: () -> Void
+    let isEditing: Bool
+    let onPrimaryTap: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
 
     private var sizeMultiplier: CGFloat {
         CGFloat(tile.size ?? 1.0)
     }
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                if let url = tile.imageURL, let uiImage = UIImage(contentsOfFile: url.path) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 60 * sizeMultiplier)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                } else if let symbol = tile.symbolName, !symbol.isEmpty {
-                    Image(systemName: symbol)
-                        .font(.system(size: 42 * sizeMultiplier, weight: .bold))
+        ZStack {
+            Button(action: onPrimaryTap) {
+                VStack(spacing: 8) {
+                    if let url = tile.imageURL, let uiImage = UIImage(contentsOfFile: url.path) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 60 * sizeMultiplier)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    } else if let symbol = tile.symbolName, !symbol.isEmpty {
+                        Image(systemName: symbol)
+                            .font(.system(size: 42 * sizeMultiplier, weight: .bold))
+                    }
+                    Text(tile.text)
+                        .font(.system(size: 17 * sizeMultiplier, weight: .semibold))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.6)
                 }
-                Text(tile.text)
-                    .font(.system(size: 17 * sizeMultiplier, weight: .semibold))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.6)
+                .frame(maxWidth: .infinity, minHeight: 110 * sizeMultiplier)
+                .padding()
+                .background(tileBackground())
+                .foregroundColor(.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
             }
-            .frame(maxWidth: .infinity, minHeight: 110 * sizeMultiplier)
-            .padding()
-            .background(tileBackground())
-            .foregroundColor(.primary)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
+            .buttonStyle(.plain)
+            .disabled(isEditing)
+
+            if isEditing {
+                HStack {
+                    Button(role: .destructive, action: onDelete) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .padding(8)
+                            .background(Color.red.opacity(0.9))
+                            .foregroundColor(.white)
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel(Text(String(localized: "Delete")))
+                    .padding([.top, .leading], 8)
+
+                    Spacer()
+
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 18, weight: .bold))
+                            .padding(8)
+                            .background(Color.blue.opacity(0.9))
+                            .foregroundColor(.white)
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel(Text(String(localized: "Edit")))
+                    .padding([.top, .trailing], 8)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
         }
-        .buttonStyle(.plain)
     }
 
     private func tileBackground() -> Color {
