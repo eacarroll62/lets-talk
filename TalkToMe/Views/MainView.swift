@@ -73,19 +73,18 @@ struct MainView: View {
     @ViewBuilder
     private var content: some View {
         if let _ = currentPage {
-            HStack(spacing: 16) {
+            VStack(spacing: 16) {
+                // MessageView pinned at the top
                 MessageView(favorites: favorites)
-                    .frame(maxWidth: .infinity)
                     .containerStyle()
 
-                // Pass a Binding<Page> to TileGridView, derived from the optional @State
+                // Scrollable tiles below
                 TileGridView(currentPage: Binding<Page>(
                     get: { self.currentPage! },
                     set: { newValue in
                         self.currentPage = newValue
                     }
                 ))
-                .frame(maxWidth: .infinity)
             }
         } else {
             ProgressView(String(localized: "Loading board…"))
