@@ -14,6 +14,8 @@ struct TileGridView: View {
     @Environment(Speaker.self) private var speaker
     @Environment(\.editMode) private var editMode
 
+    @Query(sort: \Page.order) private var pages: [Page]
+
     var currentPage: Binding<Page>
 
     @Environment(\.horizontalSizeClass) private var hSizeClass
@@ -23,10 +25,21 @@ struct TileGridView: View {
     @State private var isPresentingEditor: Bool = false
     @State private var editingTile: Tile? = nil
 
+    // Batch selection state
+    @State private var selectedTileIDs: Set<UUID> = []
+    @State private var showMoveSheet: Bool = false
+    @State private var moveDestination: Page?
+
+    // Precomputed roots to keep type-check simple
+    private var rootPages: [Page] {
+        pages.filter { $0.parent == nil }
+    }
+
     var body: some View {
         let columns = gridColumns()
         // Edit mode only meaningful if not locked
         let isEditing = !editLocked && (editMode?.wrappedValue.isEditing ?? false)
+        let isSelecting = isEditing // selection is available whenever edit mode is active
 
         ScrollView {
             LazyVGrid(columns: columns, spacing: 16) {
@@ -51,13 +64,21 @@ struct TileGridView: View {
                     }
 
                 ForEach(sortedTiles()) { tile in
+                    let isSelected = selectedTileIDs.contains(tile.id)
+
                     TileButton(
                         tile: tile,
                         isEditing: isEditing,
                         isLocked: editLocked,
+                        isSelecting: isSelecting,
+                        isSelected: isSelected,
                         onPrimaryTap: {
-                            haptic(.soft)
-                            handleTap(tile)
+                            if isSelecting {
+                                toggleSelection(for: tile)
+                            } else {
+                                haptic(.soft)
+                                handleTap(tile)
+                            }
                         },
                         onEdit: {
                             haptic(.medium)
@@ -66,9 +87,12 @@ struct TileGridView: View {
                         onDelete: {
                             haptic(.warning)
                             delete(tile)
+                        },
+                        onToggleSelect: {
+                            toggleSelection(for: tile)
                         }
                     )
-                    .if(!editLocked) { view in
+                    .if(!editLocked && !isSelecting) { view in
                         view
                             .contextMenu {
                                 Button(String(localized: "Edit")) {
@@ -97,8 +121,8 @@ struct TileGridView: View {
                     .accessibilityHint(Text(tile.destinationPage == nil
                                             ? String(localized: "Speaks this word")
                                             : String(localized: "Opens category")))
-                    // Drag & drop reordering only when unlocked
-                    .if(!editLocked) { view in
+                    // Drag & drop reordering only when unlocked and not in selection mode
+                    .if(!editLocked && !isSelecting) { view in
                         view
                             .draggable(tile.id.uuidString)
                             .dropDestination(for: String.self) { items, _ in
@@ -112,7 +136,7 @@ struct TileGridView: View {
                     }
                 }
 
-                if !editLocked {
+                if !editLocked && !isSelecting {
                     Color.clear
                         .frame(height: 1)
                         .dropDestination(for: String.self) { items, _ in
@@ -136,6 +160,56 @@ struct TileGridView: View {
                 tileToEdit: editingTile
             )
             .environment(speaker)
+        }
+        .sheet(isPresented: $showMoveSheet) {
+            MoveDestinationPickerView(
+                selection: $moveDestination,
+                rootPages: rootPages,
+                currentPageID: currentPage.wrappedValue.id,
+                onCancel: { showMoveSheet = false },
+                onConfirm: {
+                    if let dest = moveDestination {
+                        haptic(.rigid)
+                        moveSelected(to: dest)
+                        showMoveSheet = false
+                    }
+                }
+            )
+        }
+        .toolbar {
+            // Bottom action bar for batch actions
+            ToolbarItemGroup(placement: .bottomBar) {
+                if isSelecting {
+                    let selectionCount = selectedTileIDs.count
+                    Button {
+                        showMoveSheet = true
+                        moveDestination = nil
+                    } label: {
+                        Label(String(localized: "Move"), systemImage: "arrowshape.turn.up.right")
+                    }
+                    .disabled(editLocked || selectionCount == 0)
+
+                    Button(role: .destructive) {
+                        batchDeleteSelected()
+                    } label: {
+                        Label(String(localized: "Delete"), systemImage: "trash")
+                    }
+                    .disabled(editLocked || selectionCount == 0)
+
+                    Spacer()
+
+                    if selectionCount > 0 {
+                        Text(String(localized: "\(selectionCount) selected"))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .onChange(of: isEditing) { _, nowEditing in
+            if !nowEditing {
+                selectedTileIDs.removeAll()
+            }
         }
     }
 
@@ -212,6 +286,68 @@ struct TileGridView: View {
         modelContext.delete(tile)
         try? modelContext.save()
     }
+
+    private func toggleSelection(for tile: Tile) {
+        if selectedTileIDs.contains(tile.id) {
+            selectedTileIDs.remove(tile.id)
+        } else {
+            selectedTileIDs.insert(tile.id)
+        }
+    }
+
+    // MARK: - Batch actions
+
+    private func batchDeleteSelected() {
+        guard !editLocked else { return }
+        let ids = selectedTileIDs
+        guard !ids.isEmpty else { return }
+        let tiles = currentPage.wrappedValue.tiles.filter { ids.contains($0.id) }
+        for tile in tiles {
+            TileImagesStorage.delete(relativePath: tile.imageRelativePath)
+            modelContext.delete(tile)
+        }
+        // Remove from page and reindex
+        currentPage.wrappedValue.tiles.removeAll { ids.contains($0.id) }
+        for (i, t) in currentPage.wrappedValue.tiles.sorted(by: { $0.order < $1.order }).enumerated() {
+            t.order = i
+        }
+        try? modelContext.save()
+        selectedTileIDs.removeAll()
+    }
+
+    private func moveSelected(to destination: Page) {
+        guard !editLocked else { return }
+        let ids = selectedTileIDs
+        guard !ids.isEmpty else { return }
+        let sourcePage = currentPage.wrappedValue
+        let movingTiles = sourcePage.tiles.filter { ids.contains($0.id) }
+        guard !movingTiles.isEmpty else { return }
+
+        // Remove from source, reindex source
+        sourcePage.tiles.removeAll { ids.contains($0.id) }
+        for (i, t) in sourcePage.tiles.sorted(by: { $0.order < $1.order }).enumerated() {
+            t.order = i
+        }
+
+        // Append to destination, update page and order
+        let startOrder = (destination.tiles.map { $0.order }.max() ?? -1) + 1
+        var order = startOrder
+        for tile in movingTiles {
+            tile.page = destination
+            destination.tiles.append(tile)
+            tile.order = order
+            order += 1
+        }
+
+        try? modelContext.save()
+        selectedTileIDs.removeAll()
+        // If we moved to a different page, consider navigating there
+        if destination.id != sourcePage.id {
+            currentPage.wrappedValue = destination
+        }
+    }
+
+    // MARK: - Nav tiles
 
     @ViewBuilder
     private func navTile(systemName: String, label: String, action: @escaping () -> Void) -> some View {
@@ -332,6 +468,93 @@ struct TileGridView: View {
     }
 }
 
+// MARK: - Move Destination Picker (no OutlineGroup, minimal closures)
+
+private struct MoveDestinationPickerView: View {
+    @Binding var selection: Page?
+    let rootPages: [Page]
+    let currentPageID: UUID
+    let onCancel: () -> Void
+    let onConfirm: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(String(localized: "Select Destination Page")) {
+                    RecursivePagesList(
+                        pages: rootPages,
+                        level: 0,
+                        selection: $selection,
+                        currentPageID: currentPageID
+                    )
+                }
+            }
+            .navigationTitle(String(localized: "Move Tiles"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(String(localized: "Cancel")) { onCancel() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(String(localized: "Move")) { onConfirm() }
+                        .disabled(selection == nil || selection?.id == currentPageID)
+                }
+            }
+        }
+    }
+}
+
+private struct RecursivePagesList: View {
+    let pages: [Page]
+    let level: Int
+    @Binding var selection: Page?
+    let currentPageID: UUID
+
+    var body: some View {
+        ForEach(pages) { page in
+            MoveDestinationRow(
+                page: page,
+                isSelected: selection?.id == page.id,
+                isDisabled: page.id == currentPageID,
+                indent: CGFloat(level) * 16
+            ) {
+                selection = page
+            }
+            if !page.children.isEmpty {
+                RecursivePagesList(
+                    pages: page.children,
+                    level: level + 1,
+                    selection: $selection,
+                    currentPageID: currentPageID
+                )
+            }
+        }
+    }
+}
+
+private struct MoveDestinationRow: View {
+    let page: Page
+    let isSelected: Bool
+    let isDisabled: Bool
+    let indent: CGFloat
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                Image(systemName: page.isRoot ? "house.fill" : "folder")
+                Text(page.name)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.leading, indent)
+        }
+        .disabled(isDisabled)
+    }
+}
+
 // Convenience view modifier to conditionally apply modifiers
 private extension View {
     @ViewBuilder
@@ -344,9 +567,14 @@ private struct TileButton: View {
     let tile: Tile
     let isEditing: Bool
     let isLocked: Bool
+
+    // Batch selection
+    let isSelecting: Bool
+    let isSelected: Bool
     let onPrimaryTap: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
+    let onToggleSelect: () -> Void
 
     private var sizeMultiplier: CGFloat {
         CGFloat(tile.size ?? 1.0)
@@ -374,20 +602,20 @@ private struct TileButton: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 110 * sizeMultiplier)
                 .padding()
-                .background(tileBackground())
+                .background(tileBackground().overlay(selectionOverlay()))
                 .foregroundColor(.primary)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
             }
             .buttonStyle(.plain)
-            .disabled(isEditing) // disable primary tap during edit mode
+            .disabled(isEditing && !isSelecting) // during edit mode without batch selection, tile primary tap is disabled
 
             if isLocked {
                 lockBadge()
                     .padding(8)
             }
 
-            if isEditing {
+            if isEditing && !isSelecting {
                 HStack {
                     Button(role: .destructive, action: onDelete) {
                         Image(systemName: "trash.fill")
@@ -414,6 +642,29 @@ private struct TileButton: View {
                     .padding([.top, .trailing], 8)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+
+            if isSelecting {
+                // Selection checkmark
+                Button(action: onToggleSelect) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(isSelected ? .blue : .secondary)
+                        .padding(8)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(isSelected ? String(localized: "Deselect") : String(localized: "Select")))
+            }
+        }
+    }
+
+    private func selectionOverlay() -> some View {
+        Group {
+            if isSelecting && isSelected {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.blue, lineWidth: 3)
+            } else {
+                EmptyView()
             }
         }
     }
@@ -453,4 +704,3 @@ private extension Color {
         self = Color(red: r, green: g, blue: b)
     }
 }
-

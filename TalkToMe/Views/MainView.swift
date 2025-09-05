@@ -30,50 +30,194 @@ struct MainView: View {
 
     var body: some View {
         NavigationStack {
-            content
-                .safeAreaPadding()
-                .navigationTitle(String(localized: "Let's Talk"))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        HStack {
-                            Button {
-                                showPagesManager.toggle()
-                            } label: {
-                                Image(systemName: "folder")
-                            }
-                            .accessibilityLabel(Text(String(localized: "Manage Pages")))
+            Group {
+                if isSearching {
+                    searchResultsView
+                } else {
+                    content
+                }
+            }
+            .safeAreaPadding()
+            .navigationTitle(String(localized: "Let's Talk"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack {
+                        Button {
+                            showPagesManager.toggle()
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                        .accessibilityLabel(Text(String(localized: "Manage Pages")))
+                        .disabled(editLocked)
+
+                        EditButton()
                             .disabled(editLocked)
-
-                            EditButton()
-                                .disabled(editLocked)
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: { showSettings.toggle() }) {
-                            Image(systemName: "line.horizontal.3")
-                        }
-                        .accessibilityLabel(Text(String(localized: "Open Settings")))
                     }
                 }
-                .sheet(isPresented: $showSettings) { SettingsView() }
-                .sheet(isPresented: $showPagesManager) { PagesManagerView(rootPage: rootPage()) }
-                .onAppear {
-                    SeedingService.seedAllIfNeeded(modelContext: modelContext, pages: pages)
-                    if currentPage == nil {
-                        currentPage = pages.first(where: { $0.isRoot }) ?? pages.first
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { showSettings.toggle() }) {
+                        Image(systemName: "line.horizontal.3")
                     }
-                    let langCode = languageSetting.hasPrefix("es") ? "es" : "en"
-                    let tileTexts = pages.flatMap { $0.tiles.map { $0.text } }
-                    let favTexts = favorites.map { $0.text }
-                    PredictionService.shared.learn(from: tileTexts + favTexts, languageCode: langCode)
+                    .accessibilityLabel(Text(String(localized: "Open Settings")))
+                }
+            }
+            .sheet(isPresented: $showSettings) { SettingsView() }
+            .sheet(isPresented: $showPagesManager) { PagesManagerView(rootPage: rootPage()) }
+            .onAppear {
+                SeedingService.seedAllIfNeeded(modelContext: modelContext, pages: pages)
+                if currentPage == nil {
+                    currentPage = pages.first(where: { $0.isRoot }) ?? pages.first
+                }
+                let langCode = languageSetting.hasPrefix("es") ? "es" : "en"
+                let tileTexts = pages.flatMap { $0.tiles.map { $0.text } }
+                let favTexts = favorites.map { $0.text }
+                PredictionService.shared.learn(from: tileTexts + favTexts, languageCode: langCode)
 
-                    DispatchQueue.main.async {
-                        speaker.speak(String(localized: "Welcome to the Let's Talk app!"))
+                DispatchQueue.main.async {
+                    speaker.speak(String(localized: "Welcome to the Let's Talk app!"))
+                }
+            }
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text(String(localized: "Search tiles and pages")))
+            .searchSuggestions {
+                let tiles = filteredTiles().prefix(6)
+                let pgs = filteredPages().prefix(4)
+
+                if !tiles.isEmpty {
+                    Section(String(localized: "Tiles")) {
+                        ForEach(tiles, id: \.id) { tile in
+                            Button {
+                                navigate(to: tile)
+                            } label: {
+                                HStack {
+                                    if let symbol = tile.symbolName, !symbol.isEmpty {
+                                        Image(systemName: symbol)
+                                    }
+                                    Text(tile.text)
+                                    Spacer()
+                                    if let page = tile.page {
+                                        Text(page.name)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+
+                if !pgs.isEmpty {
+                    Section(String(localized: "Pages")) {
+                        ForEach(pgs, id: \.id) { page in
+                            Button {
+                                navigate(to: page)
+                            } label: {
+                                HStack {
+                                    Image(systemName: page.isRoot ? "house.fill" : "folder")
+                                    Text(page.name)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
+
+    private var isSearching: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    @ViewBuilder
+    private var searchResultsView: some View {
+        let tiles = filteredTiles()
+        let pgs = filteredPages()
+
+        List {
+            if !tiles.isEmpty {
+                Section(String(localized: "Tiles")) {
+                    ForEach(tiles, id: \.id) { tile in
+                        Button {
+                            navigate(to: tile)
+                        } label: {
+                            HStack {
+                                if let symbol = tile.symbolName, !symbol.isEmpty {
+                                    Image(systemName: symbol)
+                                }
+                                VStack(alignment: .leading) {
+                                    Text(tile.text)
+                                    if let page = tile.page {
+                                        Text(page.name)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !pgs.isEmpty {
+                Section(String(localized: "Pages")) {
+                    ForEach(pgs, id: \.id) { page in
+                        Button {
+                            navigate(to: page)
+                        } label: {
+                            HStack {
+                                Image(systemName: page.isRoot ? "house.fill" : "folder")
+                                Text(page.name)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if tiles.isEmpty && pgs.isEmpty {
+                Text(String(localized: "No results"))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: - Search helpers
+
+    private func filteredTiles() -> [Tile] {
+        let needle = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return [] }
+        let allTiles = pages.flatMap { $0.tiles }
+        return allTiles.filter { $0.text.localizedCaseInsensitiveContains(needle) }
+            .sorted { $0.text.localizedCaseInsensitiveCompare($1.text) == .orderedAscending }
+    }
+
+    private func filteredPages() -> [Page] {
+        let needle = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return [] }
+        return pages.filter { $0.name.localizedCaseInsensitiveContains(needle) }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private func navigate(to tile: Tile) {
+        // If tile opens a destination page (folder), go there. Otherwise go to the tile's page.
+        if let dest = tile.destinationPage {
+            if dest.parent == nil, let srcPage = tile.page {
+                dest.parent = srcPage
+                try? modelContext.save()
+            }
+            currentPage = dest
+        } else if let page = tile.page {
+            currentPage = page
+        }
+        // Clear search after navigation
+        searchText = ""
+    }
+
+    private func navigate(to page: Page) {
+        currentPage = page
+        searchText = ""
+    }
+
+    // MARK: - Main content
 
     @ViewBuilder
     private var content: some View {
@@ -130,3 +274,4 @@ struct MainView: View {
         .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }
+

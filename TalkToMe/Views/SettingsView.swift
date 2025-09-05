@@ -53,6 +53,9 @@ struct SettingsView: View {
     @State private var isExporting: Bool = false
     @State private var isImporting: Bool = false
     @State private var lastExportError: String?
+    @State private var exportSummary: String?
+    @State private var importSummary: String?
+    @State private var showImportConfirm: Bool = false
 
     // Development
     @State private var showReseedConfirm: Bool = false
@@ -228,9 +231,21 @@ struct SettingsView: View {
                     .disabled(isExporting)
 
                     Button {
-                        isImporting = true
+                        showImportConfirm = true
                     } label: {
                         Label(String(localized: "Import Board"), systemImage: "square.and.arrow.down.on.square")
+                    }
+                    .confirmationDialog(
+                        String(localized: "Import Board"),
+                        isPresented: $showImportConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button(String(localized: "Choose File")) {
+                            isImporting = true
+                        }
+                        Button(String(localized: "Cancel"), role: .cancel) { showImportConfirm = false }
+                    } message: {
+                        Text(String(localized: "Importing will merge content from the selected file into your current board."))
                     }
                     .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
                         switch result {
@@ -238,7 +253,19 @@ struct SettingsView: View {
                             importData(from: url)
                         case .failure(let error):
                             lastExportError = error.localizedDescription
+                            importSummary = nil
                         }
+                    }
+
+                    if let summary = exportSummary {
+                        Text(summary)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let summary = importSummary {
+                        Text(summary)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
 
                     if let err = lastExportError {
@@ -488,6 +515,7 @@ struct SettingsView: View {
     private func exportData() {
         isExporting = true
         lastExportError = nil
+        exportSummary = nil
         Task {
             do {
                 let url = try ExportService.exportJSON(
@@ -497,8 +525,10 @@ struct SettingsView: View {
                     favorites: favorites
                 )
                 exportURL = url
+                exportSummary = String(localized: "Exported \(pages.count) pages, \(allTiles.count) tiles, and \(favorites.count) favorites.")
             } catch {
                 lastExportError = error.localizedDescription
+                exportSummary = nil
             }
             isExporting = false
         }
@@ -506,11 +536,18 @@ struct SettingsView: View {
 
     private func importData(from url: URL) {
         lastExportError = nil
+        importSummary = nil
         Task {
             do {
                 try ExportService.import(modelContext: modelContext, from: url)
+                // Re-fetch counts after import
+                let pageCount = pages.count
+                let tileCount = pages.flatMap { $0.tiles }.count
+                let favCount = favorites.count
+                importSummary = String(localized: "Imported. Now \(pageCount) pages, \(tileCount) tiles, \(favCount) favorites.")
             } catch {
                 lastExportError = error.localizedDescription
+                importSummary = nil
             }
         }
     }
