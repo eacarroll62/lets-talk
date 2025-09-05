@@ -39,6 +39,10 @@ import Observation
     // Queue of pending utterances (FIFO)
     private var pendingUtterances: [AVSpeechUtterance] = []
 
+    // Track when we initiated a programmatic cancel due to replaceCurrent,
+    // so didCancel doesn't dequeue an old queue item inadvertently.
+    private var replaceInProgress: Bool = false
+
     // Preferences: Use a true stored property instead of @AppStorage to avoid @Observable conflict
     private var audioMixingRaw: String = UserDefaults.standard.string(forKey: "audioMixingOption") ?? AudioMixingOption.duckOthers.rawValue
     private var audioMixing: AudioMixingOption {
@@ -50,6 +54,9 @@ import Observation
             configureAudioSession()
         }
     }
+
+    // UserDefaults key prefix for per-language voice identifiers
+    private let perLanguageVoiceKeyPrefix = "voice.identifier."
 
     override init() {
         super.init()
@@ -115,8 +122,8 @@ import Observation
         }
     }
 
-    // Resolve a robust voice selection and persist any recovered identifier
-    private func resolveVoice() -> AVSpeechSynthesisVoice? {
+    // Resolve a robust voice selection and persist any recovered identifier (default path)
+    private func resolveDefaultVoice() -> AVSpeechSynthesisVoice? {
         let defaults = UserDefaults.standard
         let savedIdentifier = defaults.string(forKey: "identifier")
         let savedLanguage = defaults.string(forKey: "language")
@@ -151,17 +158,74 @@ import Observation
         return nil
     }
 
-    // Public API: speak with optional enqueue control and interruption policy
-    func speak(_ speechString: String, policy: InterruptionPolicy = .replaceCurrent) {
-        // Build utterance (including our current "I" tweak)
-        let utterance = buildUtterance(for: speechString)
+    // Resolve a voice for a preferred language (e.g., "en", "es", or "en-US").
+    // Optionally persists the chosen identifier per language tag for future use.
+    private func resolveVoice(preferredLanguage rawCode: String?) -> AVSpeechSynthesisVoice? {
+        guard let rawCode, !rawCode.isEmpty else {
+            return resolveDefaultVoice()
+        }
 
-        // Apply interruption policy
+        let langTag = bestLanguageTag(for: rawCode)
+        let defaults = UserDefaults.standard
+
+        // 1) Try per-language saved identifier
+        let perLangKey = perLanguageVoiceKeyPrefix + langTag
+        if let id = defaults.string(forKey: perLangKey),
+           let v = AVSpeechSynthesisVoice(identifier: id) {
+            return v
+        }
+
+        // 2) Try exact language tag
+        if let v = AVSpeechSynthesisVoice(language: langTag) {
+            defaults.set(v.identifier, forKey: perLangKey)
+            return v
+        }
+
+        // 3) Try prefix match (e.g., "en" -> first "en-*" voice)
+        if let v = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.hasPrefix(rawCode) }) {
+            defaults.set(v.identifier, forKey: perLangKey)
+            return v
+        }
+
+        // 4) Fallback to default voice
+        return resolveDefaultVoice()
+    }
+
+    // Map short code to a best-available BCP-47 tag among installed voices.
+    private func bestLanguageTag(for code: String) -> String {
+        // If already looks like a BCP-47 with region, return as-is
+        if code.contains("-") { return code }
+
+        // If we have a voice whose language starts with this code, use its full tag
+        if let match = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.hasPrefix(code) }) {
+            return match.language
+        }
+
+        // Fallback to common defaults for popular short codes
+        switch code.lowercased() {
+        case "en": return "en-US"
+        case "es": return "es-ES"
+        default:   return code
+        }
+    }
+
+    // MARK: - Public API
+
+    // Speak with default language using specified policy
+    func speak(_ speechString: String, policy: InterruptionPolicy = .replaceCurrent) {
+        speak(speechString, languageOverride: nil, policy: policy)
+    }
+
+    // Speak with a language override (e.g., "en", "es", "en-US")
+    func speak(_ speechString: String, languageOverride: String?, policy: InterruptionPolicy = .replaceCurrent) {
+        let utterance = buildUtterance(for: speechString, languageOverride: languageOverride)
+
         switch policy {
         case .replaceCurrent:
-            // Clear queue and stop current
+            // Clear any pending items and interrupt current if needed
             pendingUtterances.removeAll()
             if synthesizer.isSpeaking {
+                replaceInProgress = true
                 synthesizer.stopSpeaking(at: .immediate)
             }
             enqueueAndStart(utterance)
@@ -175,24 +239,48 @@ import Observation
 
         case .alwaysEnqueue:
             pendingUtterances.append(utterance)
-            // If nothing is playing, start now
             if !synthesizer.isSpeaking {
                 dequeueAndSpeakNext()
             }
         }
     }
 
-    // Convenience to preserve existing call sites
-    func speak(_ speechString: String) {
-        speak(speechString, policy: .replaceCurrent)
+    // Convenience alias for replaceCurrent
+    func speakImmediately(_ speechString: String, languageOverride: String? = nil) {
+        speak(speechString, languageOverride: languageOverride, policy: .replaceCurrent)
     }
 
+    // Clear only the queued items, keep current utterance as-is
+    func clearQueue() {
+        pendingUtterances.removeAll()
+    }
+
+    func pause() {
+        synthesizer.pauseSpeaking(at: .word)
+    }
+
+    func stop() {
+        pendingUtterances.removeAll()
+        synthesizer.stopSpeaking(at: .immediate)
+    }
+
+    func continueSpeaking() {
+        synthesizer.continueSpeaking()
+    }
+
+    // Expose a way to toggle audio mixing at runtime if needed
+    func setAudioMixingOption(_ option: AudioMixingOption) {
+        audioMixing = option
+    }
+
+    // MARK: - Utterance building
+
     // Build utterance with voice, rate/pitch/volume, and IPA tweak for "I"
-    private func buildUtterance(for speechString: String) -> AVSpeechUtterance {
+    private func buildUtterance(for speechString: String, languageOverride: String? = nil) -> AVSpeechUtterance {
         startSpeechSynthesizerIfNeeded()
 
         let defaults = UserDefaults.standard
-        let selectedVoice = resolveVoice()
+        let selectedVoice = resolveVoice(preferredLanguage: languageOverride)
 
         // IPA/phonetic tweak for standalone "I" (kept; we can revisit later)
         let ipaKey = NSAttributedString.Key("com.apple.speech.synthesis.IPANotation")
@@ -237,7 +325,6 @@ import Observation
     }
 
     private func enqueueAndStart(_ utterance: AVSpeechUtterance) {
-        // If currently speaking, this will interrupt due to replaceCurrent policy
         synthesizer.speak(utterance)
     }
 
@@ -245,24 +332,6 @@ import Observation
         guard !pendingUtterances.isEmpty else { return }
         let next = pendingUtterances.removeFirst()
         synthesizer.speak(next)
-    }
-
-    func pause() {
-        synthesizer.pauseSpeaking(at: .word)
-    }
-
-    func stop() {
-        pendingUtterances.removeAll()
-        synthesizer.stopSpeaking(at: .immediate)
-    }
-
-    func continueSpeaking() {
-        synthesizer.continueSpeaking()
-    }
-
-    // Expose a way to toggle audio mixing at runtime if needed
-    func setAudioMixingOption(_ option: AudioMixingOption) {
-        audioMixing = option
     }
 }
 
@@ -285,7 +354,6 @@ extension Speaker: AVSpeechSynthesizerDelegate {
 
         // If there are pending utterances, continue the queue
         if !pendingUtterances.isEmpty {
-            // Reset to speaking state immediately when starting the next item
             dequeueAndSpeakNext()
         }
     }
@@ -298,7 +366,14 @@ extension Speaker: AVSpeechSynthesizerDelegate {
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         self.state = .isCancelled
         print("Speaker: didCancel")
-        // If cancelled and we still have a queue (e.g., replace policy), start next
+
+        // If we cancelled because of a replaceCurrent, do not dequeue here.
+        if replaceInProgress {
+            replaceInProgress = false
+            return
+        }
+
+        // If cancelled and we still have a queue (e.g., user stop/pause), start next
         if !pendingUtterances.isEmpty {
             dequeueAndSpeakNext()
         }

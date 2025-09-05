@@ -256,7 +256,8 @@ struct TileGridView: View {
             return
         }
         let phrase = tile.pronunciationOverride?.isEmpty == false ? tile.pronunciationOverride! : tile.text
-        speaker.speak(phrase)
+        // Pass per-tile language override if set (e.g., "en", "es")
+        speaker.speak(phrase, languageOverride: tile.languageCode, policy: .replaceCurrent)
         logRecent(text: tile.text)
     }
 
