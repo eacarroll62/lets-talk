@@ -66,9 +66,13 @@ import Observation
 
     private func configureDefaultsIfNeeded() {
         let defaults = UserDefaults.standard
-        if defaults.object(forKey: "rate") == nil { defaults.set(0.5, forKey: "rate") }
+        // Keep defaults aligned with SettingsView slider and Apple constants
+        if defaults.object(forKey: "rate") == nil {
+            defaults.set(Double(AVSpeechUtteranceDefaultSpeechRate), forKey: "rate")
+        }
         if defaults.object(forKey: "pitch") == nil { defaults.set(1.0, forKey: "pitch") }
-        if defaults.object(forKey: "volume") == nil { defaults.set(1.0, forKey: "volume") }
+        // Match SettingsView default volume exactly (0.8)
+        if defaults.object(forKey: "volume") == nil { defaults.set(0.8, forKey: "volume") }
         // Seed a default identifier if none saved (best-effort)
         if defaults.string(forKey: "identifier") == nil {
             if let lang = Locale.preferredLanguages.first,
@@ -214,13 +218,18 @@ import Observation
 
         utterance.voice = selectedVoice
 
-        let rate = defaults.object(forKey: "rate") as? Float ?? 0.5
-        let pitch = defaults.object(forKey: "pitch") as? Float ?? 1.0
-        let volume = defaults.object(forKey: "volume") as? Float ?? 1.0
+        // Read settings as Double (matching SettingsView) and clamp using Apple’s constants
+        let rateDouble = (defaults.object(forKey: "rate") as? Double) ?? Double(AVSpeechUtteranceDefaultSpeechRate)
+        let pitchDouble = (defaults.object(forKey: "pitch") as? Double) ?? 1.0
+        let volumeDouble = (defaults.object(forKey: "volume") as? Double) ?? 0.8
 
-        utterance.rate = max(0.1, min(rate, 0.6))
-        utterance.pitchMultiplier = max(0.5, min(pitch, 2.0))
-        utterance.volume = max(0.0, min(volume, 1.0))
+        let minRate = Double(AVSpeechUtteranceMinimumSpeechRate)
+        let maxRate = Double(AVSpeechUtteranceMaximumSpeechRate)
+        let clampedRate = max(minRate, min(rateDouble, maxRate))
+
+        utterance.rate = Float(clampedRate)
+        utterance.pitchMultiplier = max(0.5, min(Float(pitchDouble), 2.0))
+        utterance.volume = max(0.0, min(Float(volumeDouble), 1.0))
         utterance.preUtteranceDelay = 0.0
         utterance.postUtteranceDelay = 0.1
 
