@@ -17,6 +17,7 @@ struct SettingsView: View {
 
     @Query(sort: \Page.order) private var pages: [Page]
     @Query(sort: \Favorite.order) private var favorites: [Favorite]
+    @Query(sort: \QuickPhrase.order) private var quickPhrases: [QuickPhrase]
     private var allTiles: [Tile] { pages.flatMap { $0.tiles } }
 
     @AppStorage("identifier") private var identifier: String = "com.apple.voice.compact.en-US.Samantha"
@@ -28,6 +29,9 @@ struct SettingsView: View {
     @AppStorage("audioMixingOption") private var audioMixingRaw: String = Speaker.AudioMixingOption.duckOthers.rawValue
     @AppStorage("gridSizePreference") private var gridSizeRaw: String = GridSizePreference.medium.rawValue
     @AppStorage("predictionEnabled") private var predictionEnabled: Bool = true
+
+    // Guided edit lock
+    @AppStorage("editLocked") private var editLocked: Bool = true
 
     enum GridSizePreference: String, CaseIterable, Identifiable {
         case small, medium, large
@@ -52,6 +56,12 @@ struct SettingsView: View {
 
     // Development
     @State private var showReseedConfirm: Bool = false
+
+    // Quick Phrases editing
+    @State private var newQuickPhrase: String = ""
+    @State private var isEditingQuickPhrases: Bool = false
+    @State private var qpEdits: [UUID: String] = [:]
+    @State private var confirmDeleteQP: QuickPhrase?
 
     private let rateMin = Double(AVSpeechUtteranceMinimumSpeechRate)
     private let rateMax = Double(AVSpeechUtteranceMaximumSpeechRate)
@@ -154,7 +164,52 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
 
-                // Backup section (unchanged content you already have)
+                // Quick Phrases editor
+                Section(
+                    header: Text(String(localized: "Quick Phrases")),
+                    footer: quickPhrasesFooter()
+                ) {
+                    HStack {
+                        TextField(String(localized: "Add new phrase"), text: $newQuickPhrase)
+                            .textInputAutocapitalization(.sentences)
+                            .disabled(editLocked)
+                            .opacity(editLocked ? 0.5 : 1.0)
+                        Button {
+                            addQuickPhrase()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                        }
+                        .disabled(editLocked || !canAddNewQuickPhrase())
+                        .opacity((editLocked || !canAddNewQuickPhrase()) ? 0.5 : 1.0)
+                        .accessibilityLabel(Text(String(localized: "Add Quick Phrase")))
+                    }
+
+                    if quickPhrases.isEmpty {
+                        Text(String(localized: "No quick phrases yet. Add one above."))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        List {
+                            ForEach(quickPhrases) { qp in
+                                quickPhraseRow(qp)
+                            }
+                            // Guard reordering by lock
+                            .onMove { source, destination in
+                                if !editLocked {
+                                    moveQuickPhrases(from: source, to: destination)
+                                }
+                            }
+                        }
+                        .frame(minHeight: 150, maxHeight: 260)
+                        .environment(\.editMode, .constant(isEditingQuickPhrases && !editLocked ? .active : .inactive))
+
+                        Toggle(String(localized: "Reorder Mode"), isOn: $isEditingQuickPhrases)
+                            .disabled(editLocked)
+                            .opacity(editLocked ? 0.5 : 1.0)
+                            .accessibilityHint(Text(String(localized: "Enable to drag and reorder quick phrases")))
+                    }
+                }
+
+                // Backup section
                 Section(header: Text(String(localized: "Backup"))) {
                     if let exportURL {
                         ShareLink(item: exportURL) {
@@ -193,7 +248,28 @@ struct SettingsView: View {
                     }
                 }
 
-                // Development section
+                // Admin (Guided Edit Lock) + Development
+                Section(header: Text(String(localized: "Admin"))) {
+                    if editLocked {
+                        Button {
+                            authenticateAndUnlock()
+                        } label: {
+                            Label(String(localized: "Unlock Editing"), systemImage: "lock.fill")
+                        }
+                        .tint(.blue)
+                    } else {
+                        Button(role: .destructive) {
+                            editLocked = true
+                        } label: {
+                            Label(String(localized: "Lock Editing"), systemImage: "lock.open.fill")
+                        }
+                    }
+                    Text(editLocked ? String(localized: "Editing is locked. Long-press and Edit Mode are disabled.") :
+                         String(localized: "Editing is unlocked. You can edit and delete tiles and pages."))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+
                 Section(header: Text(String(localized: "Development"))) {
                     Button(role: .destructive) {
                         showReseedConfirm = true
@@ -227,8 +303,164 @@ struct SettingsView: View {
                 let option = Speaker.AudioMixingOption(rawValue: audioMixingRaw) ?? .duckOthers
                 speaker.setAudioMixingOption(option)
             }
+            .confirmationDialog(
+                String(localized: "Delete Quick Phrase?"),
+                isPresented: Binding(
+                    get: { confirmDeleteQP != nil },
+                    set: { if !$0 { confirmDeleteQP = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let qp = confirmDeleteQP {
+                    Button(String(localized: "Delete"), role: .destructive) {
+                        deleteQuickPhrase(qp)
+                    }
+                }
+                Button(String(localized: "Cancel"), role: .cancel) { confirmDeleteQP = nil }
+            } message: {
+                if let qp = confirmDeleteQP {
+                    Text(String(localized: "Are you sure you want to delete “\(qp.text)”?"))
+                }
+            }
         }
     }
+
+    // MARK: - Quick Phrases
+
+    private func quickPhrasesFooter() -> some View {
+        Group {
+            if editLocked {
+                Text(String(localized: "Editing is locked. Unlock in Settings > Admin to modify quick phrases."))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else if !newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !canAddNewQuickPhrase() {
+                Text(String(localized: "This phrase already exists."))
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func quickPhraseRow(_ qp: QuickPhrase) -> some View {
+        HStack {
+            if let editing = qpEdits[qp.id] {
+                TextField(String(localized: "Edit phrase"), text: Binding(
+                    get: { editing },
+                    set: { qpEdits[qp.id] = $0 }
+                ))
+                .disabled(editLocked)
+                .opacity(editLocked ? 0.6 : 1.0)
+
+                Button {
+                    saveQuickPhraseEdit(qp)
+                } label: {
+                    Image(systemName: "checkmark.circle.fill")
+                }
+                .disabled(editLocked || !canSaveEdit(for: qp))
+                .opacity((editLocked || !canSaveEdit(for: qp)) ? 0.5 : 1.0)
+
+                Button {
+                    qpEdits.removeValue(forKey: qp.id)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .disabled(editLocked)
+                .opacity(editLocked ? 0.5 : 1.0)
+            } else {
+                Text(qp.text)
+                    .lineLimit(1)
+                Spacer()
+                Button {
+                    if !editLocked {
+                        qpEdits[qp.id] = qp.text
+                    }
+                } label: {
+                    Image(systemName: "pencil")
+                }
+                .disabled(editLocked)
+                .opacity(editLocked ? 0.5 : 1.0)
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                if !editLocked {
+                    confirmDeleteQP = qp
+                }
+            } label: {
+                Label(String(localized: "Delete"), systemImage: "trash")
+            }
+            .disabled(editLocked)
+        }
+    }
+
+    private func canAddNewQuickPhrase() -> Bool {
+        let text = newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return false }
+        return !quickPhrases.contains { $0.text.caseInsensitiveCompare(text) == .orderedSame }
+    }
+
+    private func canSaveEdit(for qp: QuickPhrase) -> Bool {
+        guard let text = qpEdits[qp.id]?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+            return false
+        }
+        // Allow unchanged text
+        if text.caseInsensitiveCompare(qp.text) == .orderedSame { return true }
+        // Prevent duplicates against others
+        return !quickPhrases.contains { $0.id != qp.id && $0.text.caseInsensitiveCompare(text) == .orderedSame }
+    }
+
+    private func addQuickPhrase() {
+        guard !editLocked else { return }
+        let text = newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        guard !quickPhrases.contains(where: { $0.text.caseInsensitiveCompare(text) == .orderedSame }) else { return }
+        let nextOrder = (quickPhrases.map { $0.order }.max() ?? -1) + 1
+        modelContext.insert(QuickPhrase(text: text, order: nextOrder))
+        try? modelContext.save()
+        newQuickPhrase = ""
+    }
+
+    private func saveQuickPhraseEdit(_ qp: QuickPhrase) {
+        guard !editLocked else { return }
+        guard let newText = qpEdits[qp.id]?.trimmingCharacters(in: .whitespacesAndNewlines), !newText.isEmpty else { return }
+        // Duplicate check included in canSaveEdit
+        guard canSaveEdit(for: qp) else { return }
+        qp.text = newText
+        qpEdits.removeValue(forKey: qp.id)
+        try? modelContext.save()
+    }
+
+    private func deleteQuickPhrase(_ qp: QuickPhrase) {
+        guard !editLocked else { return }
+        modelContext.delete(qp)
+        // Reindex orders
+        let ordered = quickPhrases.sorted(by: { $0.order < $1.order })
+        for (i, item) in ordered.enumerated() { item.order = i }
+        try? modelContext.save()
+    }
+
+    private func moveQuickPhrases(from source: IndexSet, to destination: Int) {
+        var ordered = quickPhrases.sorted(by: { $0.order < $1.order })
+        ordered.move(fromOffsets: source, toOffset: destination)
+        for (i, qp) in ordered.enumerated() {
+            qp.order = i
+        }
+        try? modelContext.save()
+    }
+
+    // MARK: - Auth
+
+    private func authenticateAndUnlock() {
+        Task {
+            let success = await AuthService.authenticate(reason: String(localized: "Unlock editing to modify tiles and pages."))
+            if success {
+                editLocked = false
+            }
+        }
+    }
+
+    // MARK: - Voice
 
     private func fetchAvailableLanguages() {
         availableLanguages = Array(Set(AVSpeechSynthesisVoice.speechVoices().map { $0.language })).sorted()
@@ -250,6 +482,8 @@ struct SettingsView: View {
         utterance.volume = Float(volume)
         speaker.speak(utterance.speechString)
     }
+
+    // MARK: - Backup
 
     private func exportData() {
         isExporting = true
@@ -287,3 +521,4 @@ struct SettingsView: View {
         .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }
+

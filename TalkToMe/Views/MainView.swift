@@ -26,6 +26,7 @@ struct MainView: View {
     @Query(sort: \QuickPhrase.order) private var quickPhrases: [QuickPhrase]
 
     @AppStorage("language") private var languageSetting: String = "en-US"
+    @AppStorage("editLocked") private var editLocked: Bool = true
 
     var body: some View {
         NavigationStack {
@@ -42,7 +43,10 @@ struct MainView: View {
                                 Image(systemName: "folder")
                             }
                             .accessibilityLabel(Text(String(localized: "Manage Pages")))
+                            .disabled(editLocked)
+
                             EditButton()
+                                .disabled(editLocked)
                         }
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
@@ -55,12 +59,10 @@ struct MainView: View {
                 .sheet(isPresented: $showSettings) { SettingsView() }
                 .sheet(isPresented: $showPagesManager) { PagesManagerView(rootPage: rootPage()) }
                 .onAppear {
-                    // Seed as needed
                     SeedingService.seedAllIfNeeded(modelContext: modelContext, pages: pages)
                     if currentPage == nil {
                         currentPage = pages.first(where: { $0.isRoot }) ?? pages.first
                     }
-                    // Train predictor from existing data
                     let langCode = languageSetting.hasPrefix("es") ? "es" : "en"
                     let tileTexts = pages.flatMap { $0.tiles.map { $0.text } }
                     let favTexts = favorites.map { $0.text }

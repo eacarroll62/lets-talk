@@ -3,6 +3,7 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
+import UIKit
 
 struct TileEditorView: View {
     @Environment(\.dismiss) private var dismiss
@@ -35,6 +36,25 @@ struct TileEditorView: View {
     @State private var showCamera: Bool = false
     @State private var cameraImageData: Data?
 
+    // Symbol picker
+    @State private var showSymbolPicker: Bool = false
+    @State private var symbolSearch: String = ""
+
+    private let presetColors: [(String, Color)] = [
+        ("#F9D65C", Color(hex: "#F9D65C") ?? .yellow),
+        ("#FFD1DC", Color(hex: "#FFD1DC") ?? .pink),
+        ("#C6E2FF", Color(hex: "#C6E2FF") ?? .blue.opacity(0.3)),
+        ("#C1E1C1", Color(hex: "#C1E1C1") ?? .green.opacity(0.3)),
+        ("#FFECB3", Color(hex: "#FFECB3") ?? .orange.opacity(0.3)),
+        ("#E0D7FF", Color(hex: "#E0D7FF") ?? .purple.opacity(0.3))
+    ]
+
+    private let commonSymbols: [String] = [
+        "square.grid.2x2.fill", "house.fill", "arrow.backward.circle.fill", "plus.circle.fill",
+        "person.fill", "hand.wave.fill", "heart.fill", "star.fill", "checkmark.seal.fill",
+        "pencil", "trash.fill", "photo", "camera", "mic.fill", "speaker.wave.2.fill"
+    ]
+
     var isEditing: Bool { tileToEdit != nil }
 
     var body: some View {
@@ -58,13 +78,57 @@ struct TileEditorView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    TextField("Color Hex (#RRGGBB)", text: $colorHex)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled(true)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Color")
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack {
+                                ForEach(presetColors, id: \.0) { item in
+                                    let hex = item.0
+                                    let color = item.1
+                                    Button {
+                                        colorHex = hex
+                                    } label: {
+                                        Circle()
+                                            .fill(color)
+                                            .frame(width: 28, height: 28)
+                                            .overlay(
+                                                Circle().stroke(Color.primary.opacity(colorHex == hex ? 0.8 : 0.2), lineWidth: colorHex == hex ? 2 : 1)
+                                            )
+                                    }
+                                }
+                            }
+                        }
+                        ColorPicker("Custom Color", selection: Binding(
+                            get: { Color(hex: colorHex) ?? .yellow },
+                            set: { newColor in colorHex = newColor.toHexString(default: colorHex) }
+                        ))
+                        TextField("Color Hex (#RRGGBB)", text: $colorHex)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                    }
 
-                    TextField("SF Symbol (optional)", text: $symbolName)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled(true)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Symbol")
+                        HStack {
+                            TextField("SF Symbol (optional)", text: $symbolName)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled(true)
+                            Button {
+                                showSymbolPicker = true
+                            } label: {
+                                Label("Browse", systemImage: "magnifyingglass")
+                            }
+                        }
+                        if !symbolName.isEmpty {
+                            HStack(spacing: 8) {
+                                Text("Preview:")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: symbolName)
+                                    .font(.system(size: 24, weight: .bold))
+                            }
+                        }
+                    }
                 }
 
                 Section(header: Text("Image")) {
@@ -149,6 +213,9 @@ struct TileEditorView: View {
             .sheet(isPresented: $showCamera) {
                 CameraCaptureView(imageData: $cameraImageData)
             }
+            .sheet(isPresented: $showSymbolPicker) {
+                symbolPickerSheet()
+            }
             .onAppear {
                 hydrateFromExisting()
             }
@@ -219,4 +286,83 @@ struct TileEditorView: View {
         }
         dismiss()
     }
+
+    // MARK: - Symbol Picker
+
+    @ViewBuilder
+    private func symbolPickerSheet() -> some View {
+        NavigationStack {
+            VStack {
+                TextField("Search symbols", text: $symbolSearch)
+                    .textFieldStyle(.roundedBorder)
+                    .padding()
+                List {
+                    let filtered = (commonSymbols + (symbolName.isEmpty ? [] : [symbolName]))
+                        .uniqued()
+                        .filter { symbolSearch.isEmpty ? true : $0.localizedCaseInsensitiveContains(symbolSearch) }
+                        .sorted()
+                    ForEach(filtered, id: \.self) { name in
+                        HStack {
+                            Image(systemName: name)
+                                .frame(width: 32)
+                            Text(name)
+                            Spacer()
+                            if name == symbolName {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            symbolName = name
+                        }
+                    }
+                }
+            }
+            .navigationTitle("SF Symbols")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { showSymbolPicker = false }
+                }
+            }
+        }
+    }
 }
+
+private extension Array where Element: Hashable {
+    func uniqued() -> [Element] {
+        var seen = Set<Element>()
+        return filter { seen.insert($0).inserted }
+    }
+}
+
+private extension Color {
+    func toHexString(default defaultHex: String) -> String {
+        // Convert to UIColor to extract RGBA
+        let ui = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard ui.getRed(&r, green: &g, blue: &b, alpha: &a) else { return defaultHex }
+        let ri = Int(round(r * 255))
+        let gi = Int(round(g * 255))
+        let bi = Int(round(b * 255))
+        return String(format: "#%02X%02X%02X", ri, gi, bi)
+    }
+}
+
+private extension Color {
+    init?(hex: String) {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.removeFirst()
+        }
+        guard hexSanitized.count == 6,
+              let rgb = Int(hexSanitized, radix: 16) else {
+            return nil
+        }
+        let r = Double((rgb >> 16) & 0xFF) / 255.0
+        let g = Double((rgb >> 8) & 0xFF) / 255.0
+        let b = Double(rgb & 0xFF) / 255.0
+        self = Color(red: r, green: g, blue: b)
+    }
+}
+
