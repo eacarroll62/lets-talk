@@ -22,6 +22,11 @@ struct TileGridView: View {
     @AppStorage("gridSizePreference") private var gridSizeRaw: String = SettingsView.GridSizePreference.medium.rawValue
     @AppStorage("editLocked") private var editLocked: Bool = true
 
+    // View visibility toggles
+    @AppStorage("showNavTiles") private var showNavTiles: Bool = true
+    @AppStorage("showAddTileButton") private var showAddTileButton: Bool = true
+    @AppStorage("showBottomActionBar") private var showBottomActionBar: Bool = true
+
     @State private var isPresentingEditor: Bool = false
     @State private var editingTile: Tile? = nil
 
@@ -43,7 +48,7 @@ struct TileGridView: View {
 
         ScrollView {
             LazyVGrid(columns: columns, spacing: 16) {
-                if currentPage.wrappedValue.isRoot == false {
+                if showNavTiles && currentPage.wrappedValue.isRoot == false {
                     navTile(systemName: "arrow.backward.circle.fill", label: String(localized: "Back")) {
                         haptic(.light)
                         navigateBack()
@@ -54,14 +59,16 @@ struct TileGridView: View {
                     }
                 }
 
-                addTileButton()
-                    .disabled(editLocked)
-                    .overlay(alignment: .topLeading) {
-                        if editLocked {
-                            lockBadge()
-                                .padding(8)
+                if showAddTileButton {
+                    addTileButton()
+                        .disabled(editLocked)
+                        .overlay(alignment: .topLeading) {
+                            if editLocked {
+                                lockBadge()
+                                    .padding(8)
+                            }
                         }
-                    }
+                }
 
                 ForEach(sortedTiles()) { tile in
                     let isSelected = selectedTileIDs.contains(tile.id)
@@ -177,9 +184,12 @@ struct TileGridView: View {
             )
         }
         .toolbar {
-            // Bottom action bar for batch actions
+            // Global visibility menu in the top bar
+            VisibilityMenuButton()
+
+            // Bottom action bar for batch actions, gated by visibility toggle
             ToolbarItemGroup(placement: .bottomBar) {
-                if isSelecting {
+                if showBottomActionBar && isSelecting {
                     let selectionCount = selectedTileIDs.count
                     Button {
                         showMoveSheet = true
@@ -288,11 +298,11 @@ struct TileGridView: View {
         try? modelContext.save()
     }
 
-    private func toggleSelection(for tile: Tile) {
-        if selectedTileIDs.contains(tile.id) {
-            selectedTileIDs.remove(tile.id)
+    private func toggleSelection(for: Tile) {
+        if selectedTileIDs.contains(`for`.id) {
+            selectedTileIDs.remove(`for`.id)
         } else {
-            selectedTileIDs.insert(tile.id)
+            selectedTileIDs.insert(`for`.id)
         }
     }
 

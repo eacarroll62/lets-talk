@@ -29,6 +29,13 @@ struct SettingsView: View {
     @AppStorage("audioMixingOption") private var audioMixingRaw: String = Speaker.AudioMixingOption.duckOthers.rawValue
     @AppStorage("gridSizePreference") private var gridSizeRaw: String = GridSizePreference.medium.rawValue
     @AppStorage("predictionEnabled") private var predictionEnabled: Bool = true
+    @AppStorage("routeToSpeaker") private var routeToSpeaker: Bool = false
+
+    // View visibility toggles
+    @AppStorage("showNavTiles") private var showNavTiles: Bool = true
+    @AppStorage("showAddTileButton") private var showAddTileButton: Bool = true
+    @AppStorage("showBottomActionBar") private var showBottomActionBar: Bool = true
+    @AppStorage("showSentenceBar") private var showSentenceBar: Bool = true
 
     // Guided edit lock
     @AppStorage("editLocked") private var editLocked: Bool = true
@@ -146,6 +153,22 @@ struct SettingsView: View {
                         let option = Speaker.AudioMixingOption(rawValue: newValue) ?? .duckOthers
                         speaker.setAudioMixingOption(option)
                     }
+
+                    Toggle(String(localized: "Route to Speaker"), isOn: $routeToSpeaker)
+                        .onChange(of: routeToSpeaker) { _, new in
+                            speaker.setAudioRouting(toSpeaker: new)
+                        }
+                        .accessibilityHint(Text(String(localized: "Force audio to play from the device speaker")))
+                }
+
+                Section(header: Text(String(localized: "View Options"))) {
+                    Toggle(String(localized: "Sentence Bar"), isOn: $showSentenceBar)
+                    Toggle(String(localized: "Back/Home Tiles"), isOn: $showNavTiles)
+                    Toggle(String(localized: "Add Tile Button"), isOn: $showAddTileButton)
+                    Toggle(String(localized: "Bottom Action Bar"), isOn: $showBottomActionBar)
+                    Text(String(localized: "Use these options to focus on tiles only. You can also toggle them from the View Options menu in the toolbar."))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section(header: Text(String(localized: "Tile Size"))) {
@@ -329,6 +352,7 @@ struct SettingsView: View {
                 refreshVoices()
                 let option = Speaker.AudioMixingOption(rawValue: audioMixingRaw) ?? .duckOthers
                 speaker.setAudioMixingOption(option)
+                speaker.setAudioRouting(toSpeaker: routeToSpeaker)
             }
             .confirmationDialog(
                 String(localized: "Delete Quick Phrase?"),
@@ -558,4 +582,3 @@ struct SettingsView: View {
         .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }
-

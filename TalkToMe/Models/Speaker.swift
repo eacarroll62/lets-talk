@@ -8,6 +8,7 @@
 import AVFoundation
 import SwiftUI
 import Observation
+import os
 
 @Observable final class Speaker: NSObject {
     // Public observable state
@@ -39,8 +40,7 @@ import Observation
     // Queue of pending utterances (FIFO)
     private var pendingUtterances: [AVSpeechUtterance] = []
 
-    // Track when we initiated a programmatic cancel due to replaceCurrent,
-    // so didCancel doesn't dequeue an old queue item inadvertently.
+    // Track when we initiated a programmatic cancel due to replaceCurrent
     private var replaceInProgress: Bool = false
 
     // Preferences: Use a true stored property instead of @AppStorage to avoid @Observable conflict
@@ -49,21 +49,27 @@ import Observation
         get { AudioMixingOption(rawValue: audioMixingRaw) ?? .duckOthers }
         set {
             audioMixingRaw = newValue.rawValue
-            // Persist to UserDefaults so SettingsView stays in sync
             UserDefaults.standard.set(audioMixingRaw, forKey: "audioMixingOption")
             configureAudioSession()
         }
     }
 
+    // Routing option (persisted): route playback to device speaker
+    private var routeToSpeaker: Bool = UserDefaults.standard.bool(forKey: "routeToSpeaker")
+
     // UserDefaults key prefix for per-language voice identifiers
     private let perLanguageVoiceKeyPrefix = "voice.identifier."
+
+    // Logger
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "LetsTalk", category: "Speaker")
 
     override init() {
         super.init()
         synthesizer.delegate = self
         configureDefaultsIfNeeded()
-        // Ensure our stored property reflects persisted value at init
+        // Ensure our stored properties reflect persisted values at init
         audioMixingRaw = UserDefaults.standard.string(forKey: "audioMixingOption") ?? AudioMixingOption.duckOthers.rawValue
+        routeToSpeaker = UserDefaults.standard.bool(forKey: "routeToSpeaker")
         configureAudioSession()
     }
 
@@ -101,16 +107,25 @@ import Observation
         #if os(iOS) || os(tvOS) || os(visionOS)
         let session = AVAudioSession.sharedInstance()
         do {
-            let options: AVAudioSession.CategoryOptions = {
+            let mixingOptions: AVAudioSession.CategoryOptions = {
                 switch audioMixing {
                 case .duckOthers:    return [.duckOthers]
                 case .mixWithOthers: return [.mixWithOthers]
                 }
             }()
-            try session.setCategory(.playback, mode: .spokenAudio, options: options)
+
+            if routeToSpeaker {
+                var options: AVAudioSession.CategoryOptions = mixingOptions.union([.defaultToSpeaker])
+                options.insert(.allowBluetooth)
+                try session.setCategory(.playAndRecord, mode: .spokenAudio, options: options)
+            } else {
+                try session.setCategory(.playback, mode: .spokenAudio, options: mixingOptions)
+            }
+
             try session.setActive(true, options: [])
+            debugLog("AudioSession configured. routeToSpeaker=\(self.routeToSpeaker), mixing=\(self.audioMixing.rawValue)")
         } catch {
-            print("AudioSession error: \(error)")
+            errorLog("AudioSession error: \(error.localizedDescription)")
         }
         #endif
     }
@@ -128,33 +143,24 @@ import Observation
         let savedIdentifier = defaults.string(forKey: "identifier")
         let savedLanguage = defaults.string(forKey: "language")
 
-        // 1) Try saved identifier directly
         if let id = savedIdentifier, let v = AVSpeechSynthesisVoice(identifier: id) {
             return v
         }
-
-        // 2) Try saved language
-        if let lang = savedLanguage,
-           let v = AVSpeechSynthesisVoice(language: lang) {
+        if let lang = savedLanguage, let v = AVSpeechSynthesisVoice(language: lang) {
             defaults.set(v.identifier, forKey: "identifier")
             return v
         }
-
-        // 3) Try preferred languages
         if let preferred = Locale.preferredLanguages.first,
            let v = AVSpeechSynthesisVoice(language: preferred) {
             defaults.set(v.identifier, forKey: "identifier")
             defaults.set(v.language, forKey: "language")
             return v
         }
-
-        // 4) Fallback to first available
         if let v = AVSpeechSynthesisVoice.speechVoices().first {
             defaults.set(v.identifier, forKey: "identifier")
             defaults.set(v.language, forKey: "language")
             return v
         }
-
         return nil
     }
 
@@ -193,15 +199,10 @@ import Observation
 
     // Map short code to a best-available BCP-47 tag among installed voices.
     private func bestLanguageTag(for code: String) -> String {
-        // If already looks like a BCP-47 with region, return as-is
         if code.contains("-") { return code }
-
-        // If we have a voice whose language starts with this code, use its full tag
         if let match = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.hasPrefix(code) }) {
             return match.language
         }
-
-        // Fallback to common defaults for popular short codes
         switch code.lowercased() {
         case "en": return "en-US"
         case "es": return "es-ES"
@@ -211,18 +212,15 @@ import Observation
 
     // MARK: - Public API
 
-    // Speak with default language using specified policy
     func speak(_ speechString: String, policy: InterruptionPolicy = .replaceCurrent) {
         speak(speechString, languageOverride: nil, policy: policy)
     }
 
-    // Speak with a language override (e.g., "en", "es", "en-US")
     func speak(_ speechString: String, languageOverride: String?, policy: InterruptionPolicy = .replaceCurrent) {
         let utterance = buildUtterance(for: speechString, languageOverride: languageOverride)
 
         switch policy {
         case .replaceCurrent:
-            // Clear any pending items and interrupt current if needed
             pendingUtterances.removeAll()
             if synthesizer.isSpeaking {
                 replaceInProgress = true
@@ -245,12 +243,10 @@ import Observation
         }
     }
 
-    // Convenience alias for replaceCurrent
     func speakImmediately(_ speechString: String, languageOverride: String? = nil) {
         speak(speechString, languageOverride: languageOverride, policy: .replaceCurrent)
     }
 
-    // Clear only the queued items, keep current utterance as-is
     func clearQueue() {
         pendingUtterances.removeAll()
     }
@@ -273,16 +269,22 @@ import Observation
         audioMixing = option
     }
 
+    // Toggle audio routing to the device speaker
+    func setAudioRouting(toSpeaker: Bool) {
+        routeToSpeaker = toSpeaker
+        UserDefaults.standard.set(toSpeaker, forKey: "routeToSpeaker")
+        configureAudioSession()
+    }
+
     // MARK: - Utterance building
 
-    // Build utterance with voice, rate/pitch/volume, and IPA tweak for "I"
     private func buildUtterance(for speechString: String, languageOverride: String? = nil) -> AVSpeechUtterance {
         startSpeechSynthesizerIfNeeded()
 
         let defaults = UserDefaults.standard
         let selectedVoice = resolveVoice(preferredLanguage: languageOverride)
 
-        // IPA/phonetic tweak for standalone "I" (kept; we can revisit later)
+        // IPA/phonetic tweak for standalone "I"
         let ipaKey = NSAttributedString.Key("com.apple.speech.synthesis.IPANotation")
         let phoneticKey = NSAttributedString.Key("com.apple.speech.synthesis.PhoneticPronunciation")
         let ipaValue = "aɪ"
@@ -339,20 +341,18 @@ extension Speaker: AVSpeechSynthesizerDelegate {
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         self.state = .isSpeaking
         progress = 0.0
-        print("Speaker: didStart")
+        debugLog("didStart")
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didPause utterance: AVSpeechUtterance) {
         self.state = .isPaused
-        print("Speaker: didPause")
+        debugLog("didPause")
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         self.state = .isFinished
         progress = 1.0
-        print("Speaker: didFinish")
-
-        // If there are pending utterances, continue the queue
+        debugLog("didFinish")
         if !pendingUtterances.isEmpty {
             dequeueAndSpeakNext()
         }
@@ -360,20 +360,16 @@ extension Speaker: AVSpeechSynthesizerDelegate {
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didContinue utterance: AVSpeechUtterance) {
         self.state = .isContinued
-        print("Speaker: didContinue")
+        debugLog("didContinue")
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         self.state = .isCancelled
-        print("Speaker: didCancel")
-
-        // If we cancelled because of a replaceCurrent, do not dequeue here.
+        debugLog("didCancel")
         if replaceInProgress {
             replaceInProgress = false
             return
         }
-
-        // If cancelled and we still have a queue (e.g., user stop/pause), start next
         if !pendingUtterances.isEmpty {
             dequeueAndSpeakNext()
         }
@@ -389,5 +385,25 @@ extension Speaker: AVSpeechSynthesizerDelegate {
         }
         let currentLength = characterRange.location + characterRange.length
         progress = min(1.0, max(0.0, Double(currentLength) / Double(totalLength)))
+    }
+}
+
+// MARK: - Logging helpers
+
+private extension Speaker {
+    func debugLog(_ message: StaticString) {
+        #if DEBUG
+        logger.debug("\(message)")
+        #endif
+    }
+
+    func debugLog(_ message: String) {
+        #if DEBUG
+        logger.debug("\(message, privacy: .public)")
+        #endif
+    }
+
+    func errorLog(_ message: String) {
+        logger.error("\(message, privacy: .public)")
     }
 }
