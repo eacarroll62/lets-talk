@@ -217,7 +217,7 @@ struct MessageView: View {
     }
 
     private func pruneRecents(maxCount: Int) {
-        var descriptor = FetchDescriptor<Recent>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
+        let descriptor = FetchDescriptor<Recent>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
         if let all = try? modelContext.fetch(descriptor), all.count > maxCount {
             for r in all.dropFirst(maxCount) {
                 modelContext.delete(r)
