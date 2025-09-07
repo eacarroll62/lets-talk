@@ -122,8 +122,6 @@
 				A82D05F52A522BBC004DC550 /* Preview Content */,
 				A8DAEC692E6918D40082027E /* Page.swift */,
 				A8DAEC6B2E6918D60082027E /* Tile.swift */,
-				A8DAEC6D2E6918D90082027E /* TileGridView.swift */,
-				A8380E9B2E69623200E9E58B /* TileEditorView.swift */,
 				A8380E9D2E69623400E9E58B /* CameraCaptureView.swift */,
 				A8380E9F2E69627B00E9E58B /* PredictionService.swift */,
 				A8380EA12E69638900E9E58B /* PagesManagerView.swift */,
@@ -150,6 +148,8 @@
 		A84B3F292A59F6FD0013A493 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				A8DAEC6D2E6918D90082027E /* TileGridView.swift */,
+				A8380E9B2E69623200E9E58B /* TileEditorView.swift */,
 				A82D05F12A522BBB004DC550 /* MainView.swift */,
 				A8380EBF2E6D038B00E9E58B /* Localizable.xcstrings */,
 				A84B3F252A59F3A30013A493 /* MessageView.swift */,
