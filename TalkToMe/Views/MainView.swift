@@ -27,6 +27,12 @@ struct MainView: View {
 
     @AppStorage("language") private var languageSetting: String = "en-US"
     @AppStorage("editLocked") private var editLocked: Bool = true
+    @AppStorage("userPreferredName") private var userPreferredName: String = ""
+
+    // Visibility toggles
+    @AppStorage("showSentenceBar") private var showSentenceBar: Bool = true
+    @AppStorage("showQuickPhrases") private var showQuickPhrases: Bool = true
+    @AppStorage("showRecents") private var showRecents: Bool = true
 
     var body: some View {
         NavigationStack {
@@ -64,18 +70,42 @@ struct MainView: View {
             }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showPagesManager) { PagesManagerView(rootPage: rootPage()) }
-            .onAppear {
-                SeedingService.seedAllIfNeeded(modelContext: modelContext, pages: pages)
-                if currentPage == nil {
-                    currentPage = pages.first(where: { $0.isRoot }) ?? pages.first
+            .task {
+                // Pick a sensible default voice for the current language if one isn't set
+                if UserDefaults.standard.string(forKey: "identifier")?.isEmpty ?? true {
+                    if let best = VoicePicker.bestVoiceIdentifier(for: languageSetting) {
+                        await MainActor.run {
+                            UserDefaults.standard.set(best, forKey: "identifier")
+                        }
+                    }
                 }
+
+                // Seed initial data if needed
+                SeedingService.seedAllIfNeeded(modelContext: modelContext, pages: pages)
+
+                // Ensure we have a current page
+                if currentPage == nil {
+                    await MainActor.run {
+                        currentPage = pages.first(where: { $0.isRoot }) ?? pages.first
+                    }
+                }
+
+                // Train prediction service
                 let langCode = languageSetting.hasPrefix("es") ? "es" : "en"
                 let tileTexts = pages.flatMap { $0.tiles.map { $0.text } }
                 let favTexts = favorites.map { $0.text }
                 PredictionService.shared.learn(from: tileTexts + favTexts, languageCode: langCode)
 
-                DispatchQueue.main.async {
-                    speaker.speak(String(localized: "Welcome to the Let's Talk app!"))
+                // Speak greeting on the main actor
+                let trimmed = userPreferredName.trimmingCharacters(in: .whitespacesAndNewlines)
+                let greeting: String
+                if trimmed.isEmpty {
+                    greeting = String(localized: "Let's Talk!")
+                } else {
+                    greeting = String(format: String(localized: "Let's Talk, %@"), trimmed)
+                }
+                await MainActor.run {
+                    speaker.speak(greeting)
                 }
             }
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text(String(localized: "Search tiles and pages")))
@@ -223,17 +253,19 @@ struct MainView: View {
     private var content: some View {
         if let _ = currentPage {
             VStack(spacing: 12) {
-                MessageView(favorites: favorites)
-                    .containerStyle()
+                if showSentenceBar {
+                    MessageView(favorites: favorites)
+                        .containerStyle()
+                }
 
-                if !quickPhrases.isEmpty {
+                if showQuickPhrases && !quickPhrases.isEmpty {
                     QuickPhrasesRow(phrases: quickPhrases.map { $0.text }) { phrase in
                         insertIntoMessage(phrase)
                     }
                     .containerStyle()
                 }
 
-                if !recents.isEmpty {
+                if showRecents && !recents.isEmpty {
                     RecentsRow(items: recents) { text in
                         insertIntoMessage(text)
                     }
@@ -274,4 +306,3 @@ struct MainView: View {
         .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }
-

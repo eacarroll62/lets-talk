@@ -1,0 +1,935 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%.2f" : {
+
+    },
+    "%lld selected" : {
+
+    },
+    "Add" : {
+
+    },
+    "Add new phrase" : {
+
+    },
+    "Add Page" : {
+
+    },
+    "Add Quick Phrase" : {
+
+    },
+    "Add Tile" : {
+
+    },
+    "Add Tile Button" : {
+
+    },
+    "Adjust rate, pitch, and volume in Settings. Choose a language and voice that fit your needs." : {
+
+    },
+    "Admin" : {
+
+    },
+    "Append" : {
+
+    },
+    "Are you sure you want to delete “%@”?" : {
+
+    },
+    "Audio" : {
+
+    },
+    "Audio Mixing" : {
+
+    },
+    "Authentication failed. You can try again or finish and keep editing locked." : {
+
+    },
+    "Back" : {
+
+    },
+    "Back/Home Tiles" : {
+
+    },
+    "Backup" : {
+
+    },
+    "Backup and Restore" : {
+
+    },
+    "Bottom Action Bar" : {
+
+    },
+    "Breadcrumb %@" : {
+
+    },
+    "Browse" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Children: %lld" : {
+
+    },
+    "Children: %lld • Tiles: %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Children: %1$lld • Tiles: %2$lld"
+          }
+        }
+      }
+    },
+    "Choose File" : {
+
+    },
+    "Choose from Library" : {
+
+    },
+    "Clear Message Box" : {
+
+    },
+    "Close" : {
+
+    },
+    "Color" : {
+
+    },
+    "Color Hex (#RRGGBB)" : {
+
+    },
+    "Columns: %lld" : {
+
+    },
+    "Create a new tile" : {
+
+    },
+    "Create New Page" : {
+
+    },
+    "Custom" : {
+
+    },
+    "Custom Color" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete Quick Phrase?" : {
+
+    },
+    "Deselect" : {
+
+    },
+    "Destination Page" : {
+
+    },
+    "Development" : {
+
+    },
+    "Dictation Mode" : {
+
+    },
+    "Dismiss" : {
+
+    },
+    "Dismiss Settings" : {
+
+    },
+    "Display Mode" : {
+
+    },
+    "Done" : {
+
+    },
+    "Duck Others" : {
+
+    },
+    "Edit" : {
+
+    },
+    "Edit phrase" : {
+
+    },
+    "Edit Tile" : {
+
+    },
+    "Editing is locked by default to prevent accidental changes. You can unlock editing to add, reorder, and delete tiles and pages." : {
+
+    },
+    "Editing is locked. Long-press and Edit Mode are disabled." : {
+
+    },
+    "Editing is locked. Unlock in Settings > Admin to modify quick phrases." : {
+
+    },
+    "Editing is locked. Unlock in Settings to add or modify pages." : {
+
+    },
+    "Editing is unlocked. You can edit and delete tiles and pages." : {
+
+    },
+    "Editing Tiles and Pages" : {
+
+    },
+    "Email Support" : {
+
+    },
+    "Empty" : {
+
+    },
+    "Enable Prediction" : {
+
+    },
+    "Enable to drag and reorder quick phrases" : {
+
+    },
+    "English" : {
+
+    },
+    "Enter text to speak" : {
+
+    },
+    "Enter your message" : {
+
+    },
+    "Español" : {
+
+    },
+    "Existing Page" : {
+
+    },
+    "Export Board" : {
+
+    },
+    "Export your board to a file you control. Import to merge content into your current board." : {
+
+    },
+    "Exported %lld pages, %lld tiles, and %lld favorites." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Exported %1$lld pages, %2$lld tiles, and %3$lld favorites."
+          }
+        }
+      }
+    },
+    "Extra Large" : {
+
+    },
+    "Finish onboarding and keep editing locked" : {
+
+    },
+    "Force audio to play from the device speaker" : {
+
+    },
+    "Getting Started" : {
+
+    },
+    "Guided Edit Lock" : {
+
+    },
+    "Help & Support" : {
+
+    },
+    "Home" : {
+
+    },
+    "If provided, the app may greet you by name." : {
+
+    },
+    "Image" : {
+
+    },
+    "Import Board" : {
+
+    },
+    "Imported. Now %lld pages, %lld tiles, %lld favorites." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Imported. Now %1$lld pages, %2$lld tiles, %3$lld favorites."
+          }
+        }
+      }
+    },
+    "Importing will merge content from the selected file into your current board." : {
+
+    },
+    "Insert quick phrase" : {
+
+    },
+    "Insert recent phrase" : {
+
+    },
+    "Language" : {
+
+    },
+    "Language and Voice" : {
+
+    },
+    "Large" : {
+
+    },
+    "Layout" : {
+
+    },
+    "Let's Talk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lass uns reden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let's Talk"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hablemos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parlons"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vamos conversar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一起说吧"
+          }
+        }
+      }
+    },
+    "Let's Talk, %@" : {
+      "comment" : "Greeting with a name placeholder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lass uns reden, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let's Talk, %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hablemos, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parlons, %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vamos conversar, %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一起说吧，%@"
+          }
+        }
+      }
+    },
+    "Let's Talk!" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lass uns reden!"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let's Talk!"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¡Hablemos!"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parlons !"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vamos conversar!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一起说吧！"
+          }
+        }
+      }
+    },
+    "Loading board…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tafel wird geladen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading board…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando tablero…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement du tableau…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando quadro…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在加载板…"
+          }
+        }
+      }
+    },
+    "Lock Editing" : {
+
+    },
+    "Lock editing to prevent accidental changes" : {
+
+    },
+    "Manage Pages" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seiten verwalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage Pages"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestionar páginas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérer les pages"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerenciar páginas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理页面"
+          }
+        }
+      }
+    },
+    "Medium" : {
+
+    },
+    "Message" : {
+
+    },
+    "Mix With Others" : {
+
+    },
+    "Move" : {
+
+    },
+    "Move Down" : {
+
+    },
+    "Move Tiles" : {
+
+    },
+    "Move Up" : {
+
+    },
+    "New page name" : {
+
+    },
+    "New Page Name" : {
+
+    },
+    "New Tile" : {
+
+    },
+    "Next" : {
+
+    },
+    "No quick phrases yet. Add one above." : {
+
+    },
+    "No results" : {
+
+    },
+    "No voices available" : {
+
+    },
+    "None" : {
+
+    },
+    "Open Help & Support" : {
+
+    },
+    "Open Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les réglages"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir ajustes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开设置"
+          }
+        }
+      }
+    },
+    "Opens category" : {
+
+    },
+    "Page actions for %@" : {
+
+    },
+    "Page name" : {
+
+    },
+    "Pages" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pages"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Páginas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pages"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Páginas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "页面"
+          }
+        }
+      }
+    },
+    "Pitch" : {
+
+    },
+    "Play Message" : {
+
+    },
+    "Prediction" : {
+
+    },
+    "Preferred Name" : {
+
+    },
+    "Preview:" : {
+
+    },
+    "Privacy Policy" : {
+
+    },
+    "Pronunciation (optional)" : {
+
+    },
+    "Quick Phrases" : {
+
+    },
+    "Rate" : {
+
+    },
+    "Recents" : {
+
+    },
+    "Rename" : {
+
+    },
+    "Reorder Mode" : {
+
+    },
+    "Replace" : {
+
+    },
+    "Reseed" : {
+
+    },
+    "Reseed Starter Pages" : {
+
+    },
+    "Reseed Starter Pages?" : {
+
+    },
+    "Root" : {
+
+    },
+    "Route to Speaker" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save Message as Favorite" : {
+
+    },
+    "Save Names" : {
+
+    },
+    "Search Favorites" : {
+
+    },
+    "Search symbols" : {
+
+    },
+    "Search tiles and pages" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kacheln und Seiten suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search tiles and pages"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar fichas y páginas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des tuiles et des pages"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pesquisar blocos e páginas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索瓷砖和页面"
+          }
+        }
+      }
+    },
+    "Select" : {
+
+    },
+    "Select Destination Page" : {
+
+    },
+    "Select Language" : {
+
+    },
+    "Select Voice" : {
+
+    },
+    "Sentence Bar" : {
+
+    },
+    "Set as Root" : {
+
+    },
+    "Settings" : {
+
+    },
+    "SF Symbol (optional)" : {
+
+    },
+    "SF Symbols" : {
+
+    },
+    "Share Last Export" : {
+
+    },
+    "Size" : {
+
+    },
+    "Skip" : {
+
+    },
+    "Small" : {
+
+    },
+    "Speak" : {
+
+    },
+    "Speaker State: %@" : {
+
+    },
+    "Speaks the tile text using the selected language" : {
+
+    },
+    "Speaks this word" : {
+
+    },
+    "Speech Settings" : {
+
+    },
+    "Start Dictation" : {
+
+    },
+    "Stop Dictation" : {
+
+    },
+    "Suggestion %@" : {
+
+    },
+    "Suggestions adapt to your tiles and favorites." : {
+
+    },
+    "Support" : {
+
+    },
+    "Support Website" : {
+
+    },
+    "Symbol" : {
+
+    },
+    "Take Photo" : {
+
+    },
+    "Tap tiles to speak" : {
+
+    },
+    "Tap tiles to speak words and phrases. Use Favorites and Quick Phrases to build messages fast." : {
+
+    },
+    "Test Speech" : {
+
+    },
+    "Text" : {
+
+    },
+    "This is a test speech with the current settings of the %@ language, a rate of %lf, a pitch of %lf, and a volume of %lf applied." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This is a test speech with the current settings of the %1$@ language, a rate of %2$lf, a pitch of %3$lf, and a volume of %4$lf applied."
+          }
+        }
+      }
+    },
+    "This phrase already exists." : {
+
+    },
+    "This tile opens a category page" : {
+
+    },
+    "This will delete all pages, tiles, favorites, recents, quick phrases, and images, then rebuild the starter board." : {
+
+    },
+    "Tile" : {
+
+    },
+    "Tile Size" : {
+
+    },
+    "Tiles" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kacheln"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiles"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fichas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuiles"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocos"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "瓷砖"
+          }
+        }
+      }
+    },
+    "Tiles: %lld" : {
+
+    },
+    "Toggle view options from the toolbar menu" : {
+
+    },
+    "Unlock Editing" : {
+
+    },
+    "Unlock editing in Settings > Admin. Long-press a tile or use the Edit buttons to modify, move, or delete." : {
+
+    },
+    "Unlock editing to modify tiles and pages." : {
+
+    },
+    "Unlock When You Need To" : {
+
+    },
+    "Use Face ID / Touch ID or passcode to temporarily unlock editing. You can always re-lock in Settings." : {
+
+    },
+    "Use the Sentence Bar to compose longer phrases" : {
+
+    },
+    "Use these options to focus on tiles only. You can also toggle them from the View Options menu in the toolbar." : {
+
+    },
+    "User Info" : {
+
+    },
+    "View Options" : {
+
+    },
+    "Volume" : {
+
+    },
+    "Welcome to Let's Talk" : {
+
+    }
+  },
+  "version" : "1.0"
+}

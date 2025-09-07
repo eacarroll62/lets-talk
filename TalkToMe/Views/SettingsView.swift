@@ -28,6 +28,7 @@ struct SettingsView: View {
     @AppStorage("controlStyle") private var controlStyle: ControlsStyle = .compact
     @AppStorage("audioMixingOption") private var audioMixingRaw: String = Speaker.AudioMixingOption.duckOthers.rawValue
     @AppStorage("gridSizePreference") private var gridSizeRaw: String = GridSizePreference.medium.rawValue
+    @AppStorage("customGridColumns") private var customGridColumns: Int = 4
     @AppStorage("predictionEnabled") private var predictionEnabled: Bool = true
     @AppStorage("routeToSpeaker") private var routeToSpeaker: Bool = false
 
@@ -36,18 +37,25 @@ struct SettingsView: View {
     @AppStorage("showAddTileButton") private var showAddTileButton: Bool = true
     @AppStorage("showBottomActionBar") private var showBottomActionBar: Bool = true
     @AppStorage("showSentenceBar") private var showSentenceBar: Bool = true
+    @AppStorage("showQuickPhrases") private var showQuickPhrases: Bool = true
+    @AppStorage("showRecents") private var showRecents: Bool = true
 
     // Guided edit lock
     @AppStorage("editLocked") private var editLocked: Bool = true
 
+    // User info
+    @AppStorage("userPreferredName") private var userPreferredName: String = ""
+
     enum GridSizePreference: String, CaseIterable, Identifiable {
-        case small, medium, large
+        case small, medium, large, extraLarge, custom
         var id: String { rawValue }
         var label: String {
             switch self {
             case .small: return String(localized: "Small")
             case .medium: return String(localized: "Medium")
             case .large: return String(localized: "Large")
+            case .extraLarge: return String(localized: "Extra Large")
+            case .custom: return String(localized: "Custom")
             }
         }
     }
@@ -59,10 +67,10 @@ struct SettingsView: View {
     @State private var exportURL: URL?
     @State private var isExporting: Bool = false
     @State private var isImporting: Bool = false
+    @State private var showImportConfirm: Bool = false
     @State private var lastExportError: String?
     @State private var exportSummary: String?
     @State private var importSummary: String?
-    @State private var showImportConfirm: Bool = false
 
     // Development
     @State private var showReseedConfirm: Bool = false
@@ -73,8 +81,34 @@ struct SettingsView: View {
     @State private var qpEdits: [UUID: String] = [:]
     @State private var confirmDeleteQP: QuickPhrase?
 
+    // UI state
+    @State private var showSpeechSettings: Bool = false
+    @State private var showViewOptions: Bool = false
+    @State private var showAudioSettings: Bool = false
+    @State private var showLayoutSettings: Bool = false
+    @State private var showQuickPhrasesDisclosure: Bool = false
+    @State private var showUserInfoDisclosure: Bool = false
+
     private let rateMin = Double(AVSpeechUtteranceMinimumSpeechRate)
     private let rateMax = Double(AVSpeechUtteranceMaximumSpeechRate)
+
+    // Strongly-typed proxies for raw AppStorage
+    private var audioMixingOption: Binding<Speaker.AudioMixingOption> {
+        Binding(
+            get: { Speaker.AudioMixingOption(rawValue: audioMixingRaw) ?? .duckOthers },
+            set: { new in
+                audioMixingRaw = new.rawValue
+                speaker.setAudioMixingOption(new)
+            }
+        )
+    }
+
+    private var gridSizePreference: Binding<GridSizePreference> {
+        Binding(
+            get: { GridSizePreference(rawValue: gridSizeRaw) ?? .medium },
+            set: { gridSizeRaw = $0.rawValue }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -102,6 +136,22 @@ struct SettingsView: View {
                     .disabled(availableVoices.isEmpty)
                 }
 
+                // User Info inside a disclosure (optional)
+                Section {
+                    DisclosureGroup(isExpanded: $showUserInfoDisclosure) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            TextField(String(localized: "Preferred Name"), text: $userPreferredName)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled(true)
+                            Text(String(localized: "If provided, the app may greet you by name."))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    } label: {
+                        Label(String(localized: "User Info"), systemImage: "person.crop.circle")
+                    }
+                }
+
                 Section(header: Text(String(localized: "Prediction"))) {
                     Toggle(String(localized: "Enable Prediction"), isOn: $predictionEnabled)
                     Text(String(localized: "Suggestions adapt to your tiles and favorites."))
@@ -109,129 +159,176 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section(header: Text(String(localized: "Speech Settings"))) {
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text(String(localized: "Rate"))
-                            Spacer()
-                            Text("\(rate, specifier: "%.2f")")
-                        }
-                        Slider(value: $rate, in: rateMin...rateMax, step: 0.01)
-                    }
-
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text(String(localized: "Pitch"))
-                            Spacer()
-                            Text("\(pitch, specifier: "%.2f")")
-                        }
-                        Slider(value: $pitch, in: 0.5...2.0, step: 0.01)
-                    }
-
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text(String(localized: "Volume"))
-                            Spacer()
-                            Text("\(volume, specifier: "%.2f")")
-                        }
-                        Slider(value: $volume, in: 0.0...1.0, step: 0.01)
-                    }
-
-                    Button(String(localized: "Test Speech")) {
-                        testSpeech()
-                    }
-                    .buttonStyle(BorderedProminentButtonStyle())
-                }
-
-                Section(header: Text(String(localized: "Audio"))) {
-                    Picker(String(localized: "Audio Mixing"), selection: $audioMixingRaw) {
-                        Text(String(localized: "Duck Others")).tag(Speaker.AudioMixingOption.duckOthers.rawValue)
-                        Text(String(localized: "Mix With Others")).tag(Speaker.AudioMixingOption.mixWithOthers.rawValue)
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: audioMixingRaw) { _, newValue in
-                        let option = Speaker.AudioMixingOption(rawValue: newValue) ?? .duckOthers
-                        speaker.setAudioMixingOption(option)
-                    }
-
-                    Toggle(String(localized: "Route to Speaker"), isOn: $routeToSpeaker)
-                        .onChange(of: routeToSpeaker) { _, new in
-                            speaker.setAudioRouting(toSpeaker: new)
-                        }
-                        .accessibilityHint(Text(String(localized: "Force audio to play from the device speaker")))
-                }
-
-                Section(header: Text(String(localized: "View Options"))) {
-                    Toggle(String(localized: "Sentence Bar"), isOn: $showSentenceBar)
-                    Toggle(String(localized: "Back/Home Tiles"), isOn: $showNavTiles)
-                    Toggle(String(localized: "Add Tile Button"), isOn: $showAddTileButton)
-                    Toggle(String(localized: "Bottom Action Bar"), isOn: $showBottomActionBar)
-                    Text(String(localized: "Use these options to focus on tiles only. You can also toggle them from the View Options menu in the toolbar."))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section(header: Text(String(localized: "Tile Size"))) {
-                    Picker(String(localized: "Tile Size"), selection: $gridSizeRaw) {
-                        ForEach(GridSizePreference.allCases) { size in
-                            Text(size.label).tag(size.rawValue)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                Section(header: Text(String(localized: "Control Settings"))) {
-                    Picker(String(localized: "Display Mode"), selection: $controlStyle) {
-                        ForEach(ControlsStyle.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .padding(.vertical, 4)
-                }
-
-                // Quick Phrases editor
-                Section(
-                    header: Text(String(localized: "Quick Phrases")),
-                    footer: quickPhrasesFooter()
-                ) {
-                    HStack {
-                        TextField(String(localized: "Add new phrase"), text: $newQuickPhrase)
-                            .textInputAutocapitalization(.sentences)
-                            .disabled(editLocked)
-                            .opacity(editLocked ? 0.5 : 1.0)
-                        Button {
-                            addQuickPhrase()
+                // Speech settings inside a disclosure
+                Section {
+                    DisclosureGroup(isExpanded: $showSpeechSettings) {
+                        LabeledContent {
+                            Slider(value: $rate, in: rateMin...rateMax, step: 0.01)
                         } label: {
-                            Image(systemName: "plus.circle.fill")
-                        }
-                        .disabled(editLocked || !canAddNewQuickPhrase())
-                        .opacity((editLocked || !canAddNewQuickPhrase()) ? 0.5 : 1.0)
-                        .accessibilityLabel(Text(String(localized: "Add Quick Phrase")))
-                    }
-
-                    if quickPhrases.isEmpty {
-                        Text(String(localized: "No quick phrases yet. Add one above."))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        List {
-                            ForEach(quickPhrases) { qp in
-                                quickPhraseRow(qp)
+                            HStack {
+                                Text(String(localized: "Rate"))
+                                Spacer()
+                                Text("\(rate, specifier: "%.2f")").monospacedDigit()
                             }
-                            // Guard reordering by lock
-                            .onMove { source, destination in
-                                if !editLocked {
-                                    moveQuickPhrases(from: source, to: destination)
+                        }
+
+                        LabeledContent {
+                            Slider(value: $pitch, in: 0.5...2.0, step: 0.01)
+                        } label: {
+                            HStack {
+                                Text(String(localized: "Pitch"))
+                                Spacer()
+                                Text("\(pitch, specifier: "%.2f")").monospacedDigit()
+                            }
+                        }
+
+                        LabeledContent {
+                            Slider(value: $volume, in: 0.0...1.0, step: 0.01)
+                        } label: {
+                            HStack {
+                                Text(String(localized: "Volume"))
+                                Spacer()
+                                Text("\(volume, specifier: "%.2f")").monospacedDigit()
+                            }
+                        }
+
+                        Button(String(localized: "Test Speech")) {
+                            testSpeech()
+                        }
+                        .buttonStyle(BorderedProminentButtonStyle())
+                        .padding(.top, 4)
+                    } label: {
+                        Label(String(localized: "Speech Settings"), systemImage: "speaker.wave.2.fill")
+                    }
+                }
+
+                // Audio inside a disclosure
+                Section {
+                    DisclosureGroup(isExpanded: $showAudioSettings) {
+                        Picker(String(localized: "Audio Mixing"), selection: audioMixingOption) {
+                            Text(String(localized: "Duck Others")).tag(Speaker.AudioMixingOption.duckOthers)
+                            Text(String(localized: "Mix With Others")).tag(Speaker.AudioMixingOption.mixWithOthers)
+                        }
+                        .pickerStyle(.segmented)
+
+                        Toggle(String(localized: "Route to Speaker"), isOn: $routeToSpeaker)
+                            .onChange(of: routeToSpeaker) { _, new in
+                                speaker.setAudioRouting(toSpeaker: new)
+                            }
+                            .accessibilityHint(Text(String(localized: "Force audio to play from the device speaker")))
+                    } label: {
+                        Label(String(localized: "Audio"), systemImage: "speaker.wave.3.fill")
+                    }
+                }
+
+                // View Options inside a disclosure
+                Section {
+                    DisclosureGroup(isExpanded: $showViewOptions) {
+                        Toggle(String(localized: "Sentence Bar"), isOn: $showSentenceBar)
+                        Toggle(String(localized: "Quick Phrases"), isOn: $showQuickPhrases)
+                        Toggle(String(localized: "Recents"), isOn: $showRecents)
+                        Toggle(String(localized: "Back/Home Tiles"), isOn: $showNavTiles)
+                        Toggle(String(localized: "Add Tile Button"), isOn: $showAddTileButton)
+                        Toggle(String(localized: "Bottom Action Bar"), isOn: $showBottomActionBar)
+
+                        Text(String(localized: "Use these options to focus on tiles only. You can also toggle them from the View Options menu in the toolbar."))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                    } label: {
+                        Label(String(localized: "View Options"), systemImage: "eye")
+                    }
+                }
+
+                // Combined Layout (Tile Size + Control Settings) inside a single disclosure
+                Section {
+                    DisclosureGroup(isExpanded: $showLayoutSettings) {
+                        // Tile Size
+                        Picker(String(localized: "Tile Size"), selection: gridSizePreference) {
+                            ForEach(GridSizePreference.allCases) { size in
+                                Text(size.label).tag(size)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityIdentifier("TileSizePicker")
+
+                        // Custom columns control appears when Custom is selected
+                        if GridSizePreference(rawValue: gridSizeRaw) == .custom {
+                            Stepper(value: $customGridColumns, in: 2...10) {
+                                Text(String(localized: "Columns: \(customGridColumns)"))
+                            }
+                            .accessibilityIdentifier("CustomColumnsStepper")
+                        }
+
+                        // Display Mode
+                        Picker(String(localized: "Display Mode"), selection: $controlStyle) {
+                            ForEach(ControlsStyle.allCases, id: \.self) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityIdentifier("DisplayModePicker")
+                        .padding(.top, 4)
+                    } label: {
+                        Label(String(localized: "Layout"), systemImage: "rectangle.3.offgrid")
+                    }
+                }
+
+                // Quick Phrases inside a disclosure
+                Section {
+                    DisclosureGroup(isExpanded: $showQuickPhrasesDisclosure) {
+                        HStack {
+                            TextField(String(localized: "Add new phrase"), text: $newQuickPhrase)
+                                .textInputAutocapitalization(.sentences)
+                                .disabled(editLocked)
+                                .opacity(editLocked ? 0.5 : 1.0)
+                            Button {
+                                addQuickPhrase()
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                            }
+                            .disabled(editLocked || !canAddNewQuickPhrase())
+                            .opacity((editLocked || !canAddNewQuickPhrase()) ? 0.5 : 1.0)
+                            .accessibilityLabel(Text(String(localized: "Add Quick Phrase")))
+                        }
+
+                        if quickPhrases.isEmpty {
+                            Text(String(localized: "No quick phrases yet. Add one above."))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            List {
+                                ForEach(quickPhrases) { qp in
+                                    quickPhraseRow(qp)
+                                }
+                                .onMove { source, destination in
+                                    if !editLocked {
+                                        moveQuickPhrases(from: source, to: destination)
+                                    }
                                 }
                             }
-                        }
-                        .frame(minHeight: 150, maxHeight: 260)
-                        .environment(\.editMode, .constant(isEditingQuickPhrases && !editLocked ? .active : .inactive))
+                            .frame(minHeight: 150, maxHeight: 260)
+                            .environment(\.editMode, .constant(isEditingQuickPhrases && !editLocked ? .active : .inactive))
 
-                        Toggle(String(localized: "Reorder Mode"), isOn: $isEditingQuickPhrases)
-                            .disabled(editLocked)
-                            .opacity(editLocked ? 0.5 : 1.0)
-                            .accessibilityHint(Text(String(localized: "Enable to drag and reorder quick phrases")))
+                            Toggle(String(localized: "Reorder Mode"), isOn: $isEditingQuickPhrases)
+                                .disabled(editLocked)
+                                .opacity(editLocked ? 0.5 : 1.0)
+                                .accessibilityHint(Text(String(localized: "Enable to drag and reorder quick phrases")))
+                        }
+
+                        // Footer content moved inside the disclosure
+                        quickPhrasesFooter()
+                            .padding(.top, 4)
+                    } label: {
+                        Label(String(localized: "Quick Phrases"), systemImage: "quote.bubble")
+                    }
+                }
+
+                // Help & Support
+                Section(header: Text(String(localized: "Help & Support"))) {
+                    NavigationLink {
+                        HelpSupportView()
+                    } label: {
+                        Label(String(localized: "Open Help & Support"), systemImage: "questionmark.circle")
                     }
                 }
 
@@ -339,20 +436,33 @@ struct SettingsView: View {
                         Text(String(localized: "This will delete all pages, tiles, favorites, recents, quick phrases, and images, then rebuild the starter board."))
                     }
                 }
-
-                Section {
-                    Button(String(localized: "Dismiss"), role: .destructive) {
-                        dismiss()
-                    }
-                }
             }
             .navigationTitle(String(localized: "Settings"))
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label(String(localized: "Dismiss"), systemImage: "xmark.circle.fill")
+                    }
+                    .accessibilityLabel(Text(String(localized: "Dismiss Settings")))
+                }
+            }
             .onAppear {
                 fetchAvailableLanguages()
                 refreshVoices()
-                let option = Speaker.AudioMixingOption(rawValue: audioMixingRaw) ?? .duckOthers
-                speaker.setAudioMixingOption(option)
+                speaker.setAudioMixingOption(Speaker.AudioMixingOption(rawValue: audioMixingRaw) ?? .duckOthers)
                 speaker.setAudioRouting(toSpeaker: routeToSpeaker)
+            }
+            .onChange(of: language) {
+                // Inside SettingsView.onChange(of: language)
+                refreshVoices()
+                PredictionService.shared.reset()
+
+                // If current identifier doesn't match the new language, pick a good default
+                if let best = VoicePicker.bestVoiceIdentifier(for: language) {
+                    identifier = best
+                }
             }
             .confirmationDialog(
                 String(localized: "Delete Quick Phrase?"),
@@ -455,9 +565,7 @@ struct SettingsView: View {
         guard let text = qpEdits[qp.id]?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
             return false
         }
-        // Allow unchanged text
         if text.caseInsensitiveCompare(qp.text) == .orderedSame { return true }
-        // Prevent duplicates against others
         return !quickPhrases.contains { $0.id != qp.id && $0.text.caseInsensitiveCompare(text) == .orderedSame }
     }
 
@@ -475,7 +583,6 @@ struct SettingsView: View {
     private func saveQuickPhraseEdit(_ qp: QuickPhrase) {
         guard !editLocked else { return }
         guard let newText = qpEdits[qp.id]?.trimmingCharacters(in: .whitespacesAndNewlines), !newText.isEmpty else { return }
-        // Duplicate check included in canSaveEdit
         guard canSaveEdit(for: qp) else { return }
         qp.text = newText
         qpEdits.removeValue(forKey: qp.id)
@@ -485,7 +592,6 @@ struct SettingsView: View {
     private func deleteQuickPhrase(_ qp: QuickPhrase) {
         guard !editLocked else { return }
         modelContext.delete(qp)
-        // Reindex orders
         let ordered = quickPhrases.sorted(by: { $0.order < $1.order })
         for (i, item) in ordered.enumerated() { item.order = i }
         try? modelContext.save()
@@ -514,24 +620,23 @@ struct SettingsView: View {
     // MARK: - Voice
 
     private func fetchAvailableLanguages() {
+        // Unique, sorted language codes available from installed voices
         availableLanguages = Array(Set(AVSpeechSynthesisVoice.speechVoices().map { $0.language })).sorted()
     }
 
     private func refreshVoices() {
         availableVoices = AVSpeechSynthesisVoice.speechVoices()
             .filter { $0.language.hasPrefix(language) }
+            .sorted(by: { $0.name < $1.name })
         if !availableVoices.contains(where: { $0.identifier == identifier }) {
             identifier = availableVoices.first?.identifier ?? ""
         }
     }
 
     private func testSpeech() {
-        let utterance = AVSpeechUtterance(string: String(localized: "This is a test speech with the current settings of the \(language) language, a rate of \(rate), a pitch of \(pitch), and a volume of \(volume) applied."))
-        utterance.voice = AVSpeechSynthesisVoice(identifier: identifier)
-        utterance.rate = Float(rate)
-        utterance.pitchMultiplier = Float(pitch)
-        utterance.volume = Float(volume)
-        speaker.speak(utterance.speechString)
+        // Keep as simple playback to respect the app's Speaker settings
+        let phrase = String(localized: "This is a test speech with the current settings of the \(language) language, a rate of \(rate), a pitch of \(pitch), and a volume of \(volume) applied.")
+        speaker.speak(phrase)
     }
 
     // MARK: - Backup
@@ -564,7 +669,6 @@ struct SettingsView: View {
         Task {
             do {
                 try ExportService.import(modelContext: modelContext, from: url)
-                // Re-fetch counts after import
                 let pageCount = pages.count
                 let tileCount = pages.flatMap { $0.tiles }.count
                 let favCount = favorites.count

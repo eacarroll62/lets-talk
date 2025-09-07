@@ -20,6 +20,7 @@ struct TileGridView: View {
 
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @AppStorage("gridSizePreference") private var gridSizeRaw: String = SettingsView.GridSizePreference.medium.rawValue
+    @AppStorage("customGridColumns") private var customGridColumns: Int = 4
     @AppStorage("editLocked") private var editLocked: Bool = true
 
     // View visibility toggles
@@ -53,10 +54,13 @@ struct TileGridView: View {
                         haptic(.light)
                         navigateBack()
                     }
+                    .aspectRatio(1, contentMode: .fit)
+
                     navTile(systemName: "house.fill", label: String(localized: "Home")) {
                         haptic(.light)
                         navigateHome()
                     }
+                    .aspectRatio(1, contentMode: .fit)
                 }
 
                 if showAddTileButton {
@@ -68,6 +72,7 @@ struct TileGridView: View {
                                     .padding(8)
                             }
                         }
+                        .aspectRatio(1, contentMode: .fit)
                 }
 
                 ForEach(sortedTiles()) { tile in
@@ -141,6 +146,7 @@ struct TileGridView: View {
                                 return true
                             } isTargeted: { _ in }
                     }
+                    .aspectRatio(1, contentMode: .fit)
                 }
 
                 if !editLocked && !isSelecting {
@@ -232,6 +238,8 @@ struct TileGridView: View {
             case .small: return base + 2
             case .medium: return base
             case .large: return max(2, base - 2)
+            case .extraLarge: return max(2, base - 4)
+            case .custom: return max(2, min(10, customGridColumns))
             }
         }()
         return Array(repeating: GridItem(.flexible(minimum: 100), spacing: 16), count: count)
@@ -369,7 +377,7 @@ struct TileGridView: View {
                 Text(label)
                     .font(.headline)
             }
-            .frame(maxWidth: .infinity, minHeight: 110)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
             .background(Color.blue.opacity(0.15))
             .foregroundColor(.blue)
@@ -393,7 +401,7 @@ struct TileGridView: View {
                 Text(String(localized: "Add"))
                     .font(.headline)
             }
-            .frame(maxWidth: .infinity, minHeight: 110)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
             .background(Color.green.opacity(0.15))
             .foregroundColor(.green)
@@ -588,85 +596,95 @@ private struct TileButton: View {
     let onToggleSelect: () -> Void
 
     private var sizeMultiplier: CGFloat {
-        CGFloat(tile.size ?? 1.0)
+        let v = CGFloat(tile.size ?? 1.0)
+        return max(0.5, min(2.0, v))
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            Button(action: onPrimaryTap) {
-                VStack(spacing: 8) {
-                    if let url = tile.imageURL, let uiImage = UIImage(contentsOfFile: url.path) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 60 * sizeMultiplier)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    } else if let symbol = tile.symbolName, !symbol.isEmpty {
-                        Image(systemName: symbol)
-                            .font(.system(size: 42 * sizeMultiplier, weight: .bold))
+        GeometryReader { geo in
+            let side = min(geo.size.width, geo.size.height)
+            let imageHeight = side * 0.5 * sizeMultiplier
+            let symbolFont = side * 0.38 * sizeMultiplier
+            let textFont = side * 0.16 * sizeMultiplier
+
+            ZStack(alignment: .topLeading) {
+                Button(action: onPrimaryTap) {
+                    VStack(spacing: 8) {
+                        if let url = tile.imageURL, let uiImage = UIImage(contentsOfFile: url.path) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: imageHeight)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        } else if let symbol = tile.symbolName, !symbol.isEmpty {
+                            Image(systemName: symbol)
+                                .font(.system(size: symbolFont, weight: .bold))
+                        }
+                        Text(tile.text)
+                            .font(.system(size: textFont, weight: .semibold))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.6)
                     }
-                    Text(tile.text)
-                        .font(.system(size: 17 * sizeMultiplier, weight: .semibold))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .minimumScaleFactor(0.6)
-                }
-                .frame(maxWidth: .infinity, minHeight: 110 * sizeMultiplier)
-                .padding()
-                .background(tileBackground().overlay(selectionOverlay()))
-                .foregroundColor(.primary)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
-            }
-            .buttonStyle(.plain)
-            .disabled(isEditing && !isSelecting) // during edit mode without batch selection, tile primary tap is disabled
-
-            if isLocked {
-                lockBadge()
-                    .padding(8)
-            }
-
-            if isEditing && !isSelecting {
-                HStack {
-                    Button(role: .destructive, action: onDelete) {
-                        Image(systemName: "trash.fill")
-                            .font(.system(size: 18, weight: .bold))
-                            .padding(8)
-                            .background(Color.red.opacity(0.9))
-                            .foregroundColor(.white)
-                            .clipShape(Circle())
-                    }
-                    .accessibilityLabel(Text(String(localized: "Delete")))
-                    .padding([.top, .leading], 8)
-
-                    Spacer()
-
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 18, weight: .bold))
-                            .padding(8)
-                            .background(Color.blue.opacity(0.9))
-                            .foregroundColor(.white)
-                            .clipShape(Circle())
-                    }
-                    .accessibilityLabel(Text(String(localized: "Edit")))
-                    .padding([.top, .trailing], 8)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            }
-
-            if isSelecting {
-                // Selection checkmark
-                Button(action: onToggleSelect) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(isSelected ? .blue : .secondary)
-                        .padding(8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding()
+                    .background(tileBackground().overlay(selectionOverlay()))
+                    .foregroundColor(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(isSelected ? String(localized: "Deselect") : String(localized: "Select")))
+                .disabled(isEditing && !isSelecting)
+
+                if isLocked {
+                    lockBadge()
+                        .padding(8)
+                }
+
+                if isEditing && !isSelecting {
+                    HStack {
+                        Button(role: .destructive, action: onDelete) {
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .padding(8)
+                                .background(Color.red.opacity(0.9))
+                                .foregroundColor(.white)
+                                .clipShape(Circle())
+                        }
+                        .accessibilityLabel(Text(String(localized: "Delete")))
+                        .padding([.top, .leading], 8)
+
+                        Spacer()
+
+                        Button(action: onEdit) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 18, weight: .bold))
+                                .padding(8)
+                                .background(Color.blue.opacity(0.9))
+                                .foregroundColor(.white)
+                                .clipShape(Circle())
+                        }
+                        .accessibilityLabel(Text(String(localized: "Edit")))
+                        .padding([.top, .trailing], 8)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                }
+
+                if isSelecting {
+                    // Selection checkmark
+                    Button(action: onToggleSelect) {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(isSelected ? .blue : .secondary)
+                            .padding(8)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(isSelected ? String(localized: "Deselect") : String(localized: "Select")))
+                }
             }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
+        .aspectRatio(1, contentMode: .fit)
     }
 
     private func selectionOverlay() -> some View {

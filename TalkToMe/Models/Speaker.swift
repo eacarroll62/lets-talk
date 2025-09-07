@@ -116,7 +116,7 @@ import os
 
             if routeToSpeaker {
                 var options: AVAudioSession.CategoryOptions = mixingOptions.union([.defaultToSpeaker])
-                options.insert(.allowBluetooth)
+                options.insert(.allowBluetoothHFP)
                 try session.setCategory(.playAndRecord, mode: .spokenAudio, options: options)
             } else {
                 try session.setCategory(.playback, mode: .spokenAudio, options: mixingOptions)

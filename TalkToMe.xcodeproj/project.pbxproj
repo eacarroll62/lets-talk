@@ -26,6 +26,10 @@
 		A8380EB22E6A7C0500E9E58B /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EB12E6A74D300E9E58B /* AuthService.swift */; };
 		A8380EB62E6AAA2800E9E58B /* VisibilityMenuButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EB52E6AAA2800E9E58B /* VisibilityMenuButton.swift */; };
 		A8380EBA2E6BDD5800E9E58B /* HelpSupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EB92E6BDD5800E9E58B /* HelpSupportView.swift */; };
+		A8380EBC2E6CC0DC00E9E58B /* SpeechTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EBB2E6CC0DC00E9E58B /* SpeechTranscriber.swift */; };
+		A8380EBE2E6D013700E9E58B /* VoiceSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8380EBD2E6D013700E9E58B /* VoiceSelection.swift */; };
+		A8380EC02E6D038B00E9E58B /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A8380EBF2E6D038B00E9E58B /* Localizable.xcstrings */; };
+		A8380EC22E6D153200E9E58B /* Localizable 2.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A8380EC12E6D153200E9E58B /* Localizable 2.xcstrings */; };
 		A84B3F222A59A9470013A493 /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84B3F212A59A9470013A493 /* HeaderView.swift */; };
 		A84B3F262A59F3A30013A493 /* MessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84B3F252A59F3A30013A493 /* MessageView.swift */; };
 		A88CBA0F2D0D0B93002A9798 /* SpeakerTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88CBA0E2D0D0B93002A9798 /* SpeakerTestView.swift */; };
@@ -59,6 +63,10 @@
 		A8380EB12E6A74D300E9E58B /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		A8380EB52E6AAA2800E9E58B /* VisibilityMenuButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisibilityMenuButton.swift; sourceTree = "<group>"; };
 		A8380EB92E6BDD5800E9E58B /* HelpSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpSupportView.swift; sourceTree = "<group>"; };
+		A8380EBB2E6CC0DC00E9E58B /* SpeechTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechTranscriber.swift; sourceTree = "<group>"; };
+		A8380EBD2E6D013700E9E58B /* VoiceSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSelection.swift; sourceTree = "<group>"; };
+		A8380EBF2E6D038B00E9E58B /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		A8380EC12E6D153200E9E58B /* Localizable 2.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "Localizable 2.xcstrings"; sourceTree = "<group>"; };
 		A84B3F212A59A9470013A493 /* HeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
 		A84B3F252A59F3A30013A493 /* MessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageView.swift; sourceTree = "<group>"; };
 		A88CBA0E2D0D0B93002A9798 /* SpeakerTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerTestView.swift; sourceTree = "<group>"; };
@@ -143,6 +151,7 @@
 			isa = PBXGroup;
 			children = (
 				A82D05F12A522BBB004DC550 /* MainView.swift */,
+				A8380EBF2E6D038B00E9E58B /* Localizable.xcstrings */,
 				A84B3F252A59F3A30013A493 /* MessageView.swift */,
 				A84B3F212A59A9470013A493 /* HeaderView.swift */,
 				A8A99F022A8C5DC80013E6C7 /* PickerView.swift */,
@@ -151,6 +160,9 @@
 				A82D06032A522E9D004DC550 /* SettingsView.swift */,
 				A8380EAD2E6A4C8800E9E58B /* BreadcrumbBar.swift */,
 				A8380EAF2E6A503900E9E58B /* SeedingService.swift */,
+				A8380EBB2E6CC0DC00E9E58B /* SpeechTranscriber.swift */,
+				A8380EBD2E6D013700E9E58B /* VoiceSelection.swift */,
+				A8380EC12E6D153200E9E58B /* Localizable 2.xcstrings */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -201,6 +213,11 @@
 			knownRegions = (
 				en,
 				Base,
+				fr,
+				de,
+				es,
+				"zh-Hans",
+				"pt-BR",
 			);
 			mainGroup = A82D05E32A522BBA004DC550;
 			productRefGroup = A82D05ED2A522BBB004DC550 /* Products */;
@@ -219,6 +236,8 @@
 			files = (
 				A82D05F72A522BBC004DC550 /* Preview Assets.xcassets in Resources */,
 				A82D05F42A522BBC004DC550 /* Assets.xcassets in Resources */,
+				A8380EC22E6D153200E9E58B /* Localizable 2.xcstrings in Resources */,
+				A8380EC02E6D038B00E9E58B /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -236,11 +255,13 @@
 				A82D05F22A522BBB004DC550 /* MainView.swift in Sources */,
 				A8380EAB2E696DE500E9E58B /* RecentsRow.swift in Sources */,
 				A8380EA02E69627B00E9E58B /* PredictionService.swift in Sources */,
+				A8380EBE2E6D013700E9E58B /* VoiceSelection.swift in Sources */,
 				A8380EA42E69638F00E9E58B /* ExportService.swift in Sources */,
 				A8380EAC2E696DEF00E9E58B /* QuickPhrasesRow.swift in Sources */,
 				A8380EBA2E6BDD5800E9E58B /* HelpSupportView.swift in Sources */,
 				A8380EA92E696DCA00E9E58B /* Recent.swift in Sources */,
 				A8DAEC6E2E6918D90082027E /* TileGridView.swift in Sources */,
+				A8380EBC2E6CC0DC00E9E58B /* SpeechTranscriber.swift in Sources */,
 				A8380EAA2E696DD800E9E58B /* QuickPhrase.swift in Sources */,
 				A82D05F02A522BBB004DC550 /* TalkToMeApp.swift in Sources */,
 				A84B3F262A59F3A30013A493 /* MessageView.swift in Sources */,
@@ -319,6 +340,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -375,6 +397,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -393,7 +416,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TalkToMe/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TalkToMe;
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take photos for your tiles.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID is used to unlock editing mode.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone for speech input.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech Recognition used for creating Tiles";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -427,7 +453,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TalkToMe/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TalkToMe;
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take photos for your tiles.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID is used to unlock editing mode.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone for speech input.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech Recognition used for creating Tiles";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

@@ -40,6 +40,11 @@ struct TileEditorView: View {
     @State private var showSymbolPicker: Bool = false
     @State private var symbolSearch: String = ""
 
+    // Speech-to-text
+    @StateObject private var transcriber = SpeechTranscriber()
+    @State private var dictationModeAppend: Bool = true
+    @State private var isRequestingAuth: Bool = false
+
     private let presetColors: [(String, Color)] = [
         ("#F9D65C", Color(hex: "#F9D65C") ?? .yellow),
         ("#FFD1DC", Color(hex: "#FFD1DC") ?? .pink),
@@ -61,7 +66,33 @@ struct TileEditorView: View {
         NavigationStack {
             Form {
                 Section(header: Text("Tile")) {
-                    TextField("Text", text: $text)
+                    HStack(spacing: 8) {
+                        TextField("Text", text: $text)
+                            .textInputAutocapitalization(.sentences)
+
+                        Button {
+                            toggleDictationForText()
+                        } label: {
+                            Image(systemName: transcriber.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                                .foregroundStyle(transcriber.isRecording ? .red : .accentColor)
+                        }
+                        .accessibilityLabel(Text(transcriber.isRecording ? "Stop Dictation" : "Start Dictation"))
+                        .help(transcriber.isRecording ? "Stop Dictation" : "Start Dictation")
+                    }
+
+                    Picker("Dictation Mode", selection: $dictationModeAppend) {
+                        Text("Append").tag(true)
+                        Text("Replace").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+
+                    if transcriber.isRecording {
+                        Text(transcriber.partialText)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+
                     TextField("Pronunciation (optional)", text: $pronunciationOverride)
 
                     Picker("Language", selection: $languageCode) {
@@ -69,6 +100,18 @@ struct TileEditorView: View {
                         Text("Español").tag("es")
                     }
                     .pickerStyle(.segmented)
+                    .onChange(of: languageCode) { _, newValue in
+                        let locale = newValue.hasPrefix("es") ? "es-ES" : "en-US"
+                        transcriber.setLocale(locale)
+                    }
+
+                    Button {
+                        speakPreview()
+                    } label: {
+                        Label("Speak", systemImage: "speaker.wave.2.fill")
+                    }
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityHint(Text("Speaks the tile text using the selected language"))
 
                     HStack {
                         Text("Size")
@@ -132,15 +175,16 @@ struct TileEditorView: View {
                 }
 
                 Section(header: Text("Image")) {
-                    HStack {
-                        PhotosPicker("Choose from Library", selection: $selectedPhotoItem, matching: .images)
-                        Spacer()
-                        Button {
-                            showCamera = true
-                        } label: {
-                            Label("Take Photo", systemImage: "camera")
-                        }
+                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                        Label("Choose from Library", systemImage: "photo")
                     }
+
+                    Button {
+                        showCamera = true
+                    } label: {
+                        Label("Take Photo", systemImage: "camera")
+                    }
+
                     if let data = selectedImageData ?? cameraImageData, let ui = UIImage(data: data) {
                         Image(uiImage: ui)
                             .resizable()
@@ -174,7 +218,6 @@ struct TileEditorView: View {
                             set: { newVal in
                                 destinationPage = newVal
                                 createNewPage = false
-                                // Auto-parent existing page if missing
                                 if let dest = newVal, dest.parent == nil {
                                     dest.parent = page
                                 }
@@ -196,16 +239,23 @@ struct TileEditorView: View {
             .navigationTitle(isEditing ? "Edit Tile" : "New Tile")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        if transcriber.isRecording { transcriber.stop() }
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isEditing ? "Save" : "Add") { saveTile() }
-                        .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(isEditing ? "Save" : "Add") {
+                        if transcriber.isRecording { transcriber.stop() }
+                        saveTile()
+                    }
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                        cameraImageData = nil
                         selectedImageData = data
                     }
                 }
@@ -218,6 +268,12 @@ struct TileEditorView: View {
             }
             .onAppear {
                 hydrateFromExisting()
+                let locale = languageCode.hasPrefix("es") ? "es-ES" : "en-US"
+                transcriber.setLocale(locale)
+            }
+            .onDisappear {
+                // Ensure the audio session is restored even if the sheet is dismissed by swipe
+                if transcriber.isRecording { transcriber.stop() }
             }
         }
     }
@@ -233,8 +289,51 @@ struct TileEditorView: View {
         destinationPage = tile.destinationPage
     }
 
+    private func toggleDictationForText() {
+        if transcriber.isRecording {
+            transcriber.stop()
+            return
+        }
+        Task {
+            if !transcriber.isAuthorized && !isRequestingAuth {
+                isRequestingAuth = true
+                let ok = await transcriber.requestAuthorization()
+                isRequestingAuth = false
+                if !ok { return }
+            }
+            do {
+                try transcriber.start { partial in
+                    if dictationModeAppend {
+                        let base = self.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if base.isEmpty {
+                            self.text = partial
+                        } else {
+                            if partial.hasPrefix(base) {
+                                let suffix = String(partial.dropFirst(base.count)).trimmingCharacters(in: .whitespaces)
+                                self.text = suffix.isEmpty ? base : "\(base) \(suffix)"
+                            } else {
+                                self.text = "\(base) \(partial)"
+                            }
+                        }
+                    } else {
+                        self.text = partial
+                    }
+                }
+            } catch {
+                print("Speech start error: \(error)")
+            }
+        }
+    }
+
+    private func speakPreview() {
+        let phrase = pronunciationOverride.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? text.trimmingCharacters(in: .whitespacesAndNewlines)
+            : pronunciationOverride.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !phrase.isEmpty else { return }
+        speaker.speak(phrase, languageOverride: languageCode, policy: .replaceCurrent)
+    }
+
     private func saveTile() {
-        // Resolve destination page (existing or new)
         var dest: Page? = destinationPage
         if createNewPage {
             let newOrder = (pages.map { $0.order }.max() ?? -1) + 1
@@ -244,7 +343,6 @@ struct TileEditorView: View {
             dest = newPage
         }
 
-        // Manage image saving
         var imageRelativePath: String? = tileToEdit?.imageRelativePath
         if let data = selectedImageData ?? cameraImageData {
             if let existing = imageRelativePath { TileImagesStorage.delete(relativePath: existing) }
@@ -338,7 +436,6 @@ private extension Array where Element: Hashable {
 
 private extension Color {
     func toHexString(default defaultHex: String) -> String {
-        // Convert to UIColor to extract RGBA
         let ui = UIColor(self)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         guard ui.getRed(&r, green: &g, blue: &b, alpha: &a) else { return defaultHex }
@@ -365,4 +462,3 @@ private extension Color {
         self = Color(red: r, green: g, blue: b)
     }
 }
-
