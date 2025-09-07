@@ -10,6 +10,7 @@ import SwiftUI
 import Observation
 import os
 
+@MainActor
 @Observable final class Speaker: NSObject {
     // Public observable state
     var state: SpeechState = .isFinished
@@ -103,8 +104,23 @@ import os
         }
     }
 
+    // Detect test environments (XCTest/XCUITest/Swift Testing)
+    private var isRunningInTests: Bool {
+        let env = ProcessInfo.processInfo.environment
+        if env["XCTestConfigurationFilePath"] != nil { return true }
+        if ProcessInfo.processInfo.arguments.contains("UITest") { return true }
+        // Swift Testing still launches under XCTest; above usually catches it.
+        return NSClassFromString("XCTestCase") != nil
+    }
+
     private func configureAudioSession() {
         #if os(iOS) || os(tvOS) || os(visionOS)
+        // Skip configuring audio in test environments to avoid concurrency and CoreAudio server warnings
+        if isRunningInTests {
+            debugLog("Skipping AudioSession configuration in tests")
+            return
+        }
+
         let session = AVAudioSession.sharedInstance()
         do {
             let mixingOptions: AVAudioSession.CategoryOptions = {

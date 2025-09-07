@@ -647,7 +647,7 @@ struct SettingsView: View {
         exportSummary = nil
         Task {
             do {
-                let url = try ExportService.exportJSON(
+                let url = try await ExportService.exportJSON(
                     modelContext: modelContext,
                     pages: pages,
                     tiles: allTiles,
@@ -668,7 +668,7 @@ struct SettingsView: View {
         importSummary = nil
         Task {
             do {
-                try ExportService.import(modelContext: modelContext, from: url)
+                try await ExportService.import(modelContext: modelContext, from: url)
                 let pageCount = pages.count
                 let tileCount = pages.flatMap { $0.tiles }.count
                 let favCount = favorites.count
@@ -686,3 +686,4 @@ struct SettingsView: View {
         .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }
+

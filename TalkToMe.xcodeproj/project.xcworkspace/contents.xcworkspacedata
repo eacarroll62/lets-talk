@@ -4,4 +4,16 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <FileRef
+      location = "group:ExportImportWithImagesTests.swift">
+   </FileRef>
+   <FileRef
+      location = "group:FavoritesAndQuickPhrasesTests.swift">
+   </FileRef>
+   <FileRef
+      location = "group:PredictionServiceTests.swift">
+   </FileRef>
+   <FileRef
+      location = "group:TileImagesStorageTests.swift">
+   </FileRef>
 </Workspace>

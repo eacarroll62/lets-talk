@@ -3,6 +3,7 @@
 import Foundation
 import SwiftData
 
+@MainActor
 enum SeedingService {
 
     static func seedAllIfNeeded(modelContext: ModelContext, pages: [Page]) {
@@ -247,3 +248,4 @@ enum SeedingService {
         return all?.first(where: { $0.isRoot }) ?? all?.first
     }
 }
+
