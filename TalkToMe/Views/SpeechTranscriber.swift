@@ -7,6 +7,7 @@
 
 import Foundation
 import AVFoundation
+import AVFAudio
 import Speech
 
 @MainActor
@@ -46,8 +47,14 @@ final class SpeechTranscriber: ObservableObject {
             }
         }
         let micOK = await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
-            AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                cont.resume(returning: granted)
+            if #available(iOS 17.0, macOS 14.0, watchOS 10.0, tvOS 17.0, *) {
+                AVAudioApplication.requestRecordPermission { granted in
+                    cont.resume(returning: granted)
+                }
+            } else {
+                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                    cont.resume(returning: granted)
+                }
             }
         }
         isAuthorized = speechOK && micOK
@@ -138,10 +145,10 @@ final class SpeechTranscriber: ObservableObject {
         savedOptions = session.categoryOptions
 
         // Use playAndRecord so you can still hear prompts; defaultToSpeaker routes to speaker on iPhone
-        // duckOthers keeps other audio quiet; allowBluetooth supports BT mics if present
+        // duckOthers keeps other audio quiet; allowBluetoothHFP supports BT mics if present
         try session.setCategory(.playAndRecord,
                                 mode: .measurement,
-                                options: [.duckOthers, .defaultToSpeaker, .allowBluetooth])
+                                options: [.duckOthers, .defaultToSpeaker, .allowBluetoothHFP])
         try? session.setPreferredSampleRate(44100)
         try? session.setPreferredIOBufferDuration(0.02)
         try session.setActive(true, options: [])
