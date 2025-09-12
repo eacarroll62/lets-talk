@@ -2,8 +2,8 @@
 //  FitzgeraldKey.swift
 //  Let's Talk
 //
-//  Defines Parts of Speech and a Fitzgerald Key color palette mapping.
-//  You can tweak the hex values here to match your preferred variant.
+//  Defines Parts of Speech and AAC color schemes (Fitzgerald variants).
+//  Includes a high-contrast option and helpers to fetch hex/Color values.
 //
 
 import SwiftUI
@@ -42,10 +42,26 @@ enum PartOfSpeech: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+/// AAC color scheme options (extensible).
+enum AACColorScheme: String, CaseIterable, Identifiable, Codable {
+    case fitzgerald
+    case fitzgeraldHighContrast
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .fitzgerald:              return String(localized: "Fitzgerald")
+        case .fitzgeraldHighContrast:  return String(localized: "Fitzgerald (High Contrast)")
+        }
+    }
+}
+
+/// Provides color mappings for Parts of Speech under different AAC schemes.
 enum FitzgeraldKey {
-    // Default palette (hex) often used in AAC contexts. Adjust as needed.
-    // These are chosen for clarity and familiarity; feel free to refine.
-    private static let palette: [PartOfSpeech: String] = [
+
+    // Base Fitzgerald palette (hex). Tuned for familiarity.
+    private static let fitzgeraldPalette: [PartOfSpeech: String] = [
         .pronoun:      "#FFE066", // yellow
         .verb:         "#2ECC71", // green
         .noun:         "#FF9F1C", // orange
@@ -60,16 +76,43 @@ enum FitzgeraldKey {
         .social:       "#F06595"  // pink
     ]
 
-    static func colorHex(for pos: PartOfSpeech) -> String {
-        palette[pos] ?? "#FFE066"
+    // High-contrast variant (aims for higher luminance contrast).
+    private static let fitzgeraldHighContrastPalette: [PartOfSpeech: String] = [
+        .pronoun:      "#FFD000", // stronger yellow
+        .verb:         "#0F9D58", // deeper green
+        .noun:         "#E65100", // deeper orange
+        .adjective:    "#1565C0", // deeper blue
+        .adverb:       "#0288D1", // deeper light-blue
+        .preposition:  "#6A1B9A", // deeper purple
+        .conjunction:  "#455A64", // darker gray-blue
+        .interjection: "#263238", // very dark gray
+        .determiner:   "#B26A00", // deeper amber
+        .question:     "#C2185B", // deeper pink
+        .negation:     "#C62828", // deeper red
+        .social:       "#AD1457"  // deeper pink/magenta
+    ]
+
+    /// Resolve the palette for a given scheme.
+    private static func palette(for scheme: AACColorScheme) -> [PartOfSpeech: String] {
+        switch scheme {
+        case .fitzgerald:             return fitzgeraldPalette
+        case .fitzgeraldHighContrast: return fitzgeraldHighContrastPalette
+        }
     }
 
-    static func color(for pos: PartOfSpeech, alpha: Double = 1.0) -> Color {
-        Color(hex: colorHex(for: pos)).opacity(alpha)
+    /// Return the hex color for a POS under a given scheme.
+    static func colorHex(for pos: PartOfSpeech, scheme: AACColorScheme = .fitzgerald) -> String {
+        palette(for: scheme)[pos] ?? "#FFE066"
+    }
+
+    /// Return a SwiftUI Color for a POS under a given scheme, with optional alpha.
+    static func color(for pos: PartOfSpeech, scheme: AACColorScheme = .fitzgerald, alpha: Double = 1.0) -> Color {
+        (Color(hex: colorHex(for: pos, scheme: scheme)) ?? .yellow).opacity(alpha)
     }
 }
 
-// Local convenience to decode hex into Color
+// MARK: - Color hex helpers
+
 extension Color {
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
