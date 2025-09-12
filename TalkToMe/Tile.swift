@@ -27,6 +27,9 @@ final class Tile: Identifiable {
     var size: Double? // 0.5 ... 2.0 (multiplier); nil = default
     var languageCode: String? // e.g., "en", "es"
 
+    // New: Fitzgerald Key POS tag (persisted as raw string for SwiftData)
+    var partOfSpeechRaw: String?
+
     init(
         id: UUID = UUID(),
         text: String,
@@ -39,7 +42,8 @@ final class Tile: Identifiable {
         page: Page? = nil,
         imageRelativePath: String? = nil,
         size: Double? = nil,
-        languageCode: String? = nil
+        languageCode: String? = nil,
+        partOfSpeechRaw: String? = nil
     ) {
         self.id = id
         self.text = text
@@ -53,6 +57,7 @@ final class Tile: Identifiable {
         self.imageRelativePath = imageRelativePath
         self.size = size
         self.languageCode = languageCode
+        self.partOfSpeechRaw = partOfSpeechRaw
     }
 }
 
@@ -61,6 +66,17 @@ extension Tile {
     var imageURL: URL? {
         guard let relative = imageRelativePath else { return nil }
         return TileImagesStorage.imagesDirectory.appendingPathComponent(relative)
+    }
+
+    // Computed POS wrapper
+    var partOfSpeech: PartOfSpeech? {
+        get {
+            guard let raw = partOfSpeechRaw else { return nil }
+            return PartOfSpeech(rawValue: raw)
+        }
+        set {
+            partOfSpeechRaw = newValue?.rawValue
+        }
     }
 }
 
@@ -92,4 +108,3 @@ enum TileImagesStorage {
         try? FileManager.default.removeItem(at: url)
     }
 }
-

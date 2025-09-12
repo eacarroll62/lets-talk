@@ -25,6 +25,9 @@ struct TileEditorView: View {
     @State private var size: Double = 1.0
     @State private var languageCode: String = (UserDefaults.standard.string(forKey: "language") ?? "en-US").hasPrefix("es") ? "es" : "en"
 
+    // New: POS selection (optional)
+    @State private var selectedPOS: PartOfSpeech?
+
     // Destination page (folder) selection
     @State private var destinationPage: Page?
     @State private var createNewPage: Bool = false
@@ -44,6 +47,10 @@ struct TileEditorView: View {
     @StateObject private var transcriber = SpeechTranscriber()
     @State private var dictationModeAppend: Bool = true
     @State private var isRequestingAuth: Bool = false
+
+    // AAC scheme
+    @AppStorage("aacColorScheme") private var aacColorSchemeRaw: String = AACColorScheme.fitzgerald.rawValue
+    private var aacScheme: AACColorScheme { AACColorScheme(rawValue: aacColorSchemeRaw) ?? .fitzgerald }
 
     private let presetColors: [(String, Color)] = [
         ("#F9D65C", Color(hex: "#F9D65C") ?? .yellow),
@@ -105,6 +112,23 @@ struct TileEditorView: View {
                         transcriber.setLocale(locale)
                     }
 
+                    // Part of Speech
+                    Picker("Part of Speech (Fitzgerald)", selection: Binding(
+                        get: { selectedPOS ?? PartOfSpeech?.none ?? nil },
+                        set: { newValue in
+                            selectedPOS = newValue
+                            // If POS is chosen, auto-apply color from the selected scheme
+                            if let pos = newValue {
+                                colorHex = FitzgeraldKey.colorHex(for: pos, scheme: aacScheme)
+                            }
+                        }
+                    )) {
+                        Text("None").tag(PartOfSpeech?.none)
+                        ForEach(PartOfSpeech.allCases) { pos in
+                            Text(pos.displayName).tag(PartOfSpeech?.some(pos))
+                        }
+                    }
+
                     Button {
                         speakPreview()
                     } label: {
@@ -130,6 +154,8 @@ struct TileEditorView: View {
                                     let color = item.1
                                     Button {
                                         colorHex = hex
+                                        // Clear POS if user manually overrides color
+                                        selectedPOS = nil
                                     } label: {
                                         Circle()
                                             .fill(color)
@@ -143,11 +169,24 @@ struct TileEditorView: View {
                         }
                         ColorPicker("Custom Color", selection: Binding(
                             get: { Color(hex: colorHex) ?? .yellow },
-                            set: { newColor in colorHex = newColor.toHexString(default: colorHex) }
+                            set: { newColor in
+                                colorHex = newColor.toHexString(default: colorHex)
+                                // Clear POS if user manually overrides color
+                                selectedPOS = nil
+                            }
                         ))
                         TextField("Color Hex (#RRGGBB)", text: $colorHex)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled(true)
+                            .onChange(of: colorHex) { _, _ in
+                                // Clear POS if user manually overrides color
+                                selectedPOS = nil
+                            }
+                        if let pos = selectedPOS {
+                            Text("Using \(aacScheme.displayName) color for \(pos.displayName).")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -287,6 +326,7 @@ struct TileEditorView: View {
         size = tile.size ?? 1.0
         languageCode = tile.languageCode ?? languageCode
         destinationPage = tile.destinationPage
+        selectedPOS = tile.partOfSpeech
     }
 
     private func toggleDictationForText() {
@@ -358,6 +398,7 @@ struct TileEditorView: View {
             edit.languageCode = languageCode
             edit.destinationPage = dest
             edit.imageRelativePath = imageRelativePath
+            edit.partOfSpeech = selectedPOS
         } else {
             let newOrder = page.tiles.count
             let tile = Tile(
@@ -371,7 +412,8 @@ struct TileEditorView: View {
                 page: page,
                 imageRelativePath: imageRelativePath,
                 size: size,
-                languageCode: languageCode
+                languageCode: languageCode,
+                partOfSpeechRaw: selectedPOS?.rawValue
             )
             modelContext.insert(tile)
             page.tiles.append(tile)

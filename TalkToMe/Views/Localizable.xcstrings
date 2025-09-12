@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "%.2f" : {
 
     },
@@ -47,6 +50,9 @@
       }
     },
     "%lld selected" : {
+
+    },
+    "AAC Color Scheme" : {
 
     },
     "Add" : {
@@ -172,6 +178,9 @@
         }
       }
     },
+    "Add short phrases you use often. Reorder them to prioritize." : {
+
+    },
     "Add Tile" : {
       "localizations" : {
         "de" : {
@@ -252,6 +261,9 @@
         }
       }
     },
+    "Adjective" : {
+
+    },
     "Adjust rate, pitch, and volume in Settings. Choose a language and voice that fit your needs." : {
 
     },
@@ -295,6 +307,9 @@
         }
       }
     },
+    "Adverb" : {
+
+    },
     "Append" : {
       "localizations" : {
         "de" : {
@@ -335,6 +350,15 @@
         }
       }
     },
+    "Applied scheme to %lld tiles." : {
+
+    },
+    "Applies to tiles that have a Part of Speech assigned." : {
+
+    },
+    "Apply Scheme Colors to Tiles" : {
+
+    },
     "Are you sure you want to delete “%@”?" : {
       "localizations" : {
         "de" : {
@@ -371,6 +395,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确定要删除“%@”吗？"
+          }
+        }
+      }
+    },
+    "Assigned POS to %lld tiles and updated %lld colors." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Assigned POS to %1$lld tiles and updated %2$lld colors."
           }
         }
       }
@@ -456,6 +490,9 @@
       }
     },
     "Authentication failed. You can try again or finish and keep editing locked." : {
+
+    },
+    "Auto‑Relock on Background" : {
 
     },
     "Back" : {
@@ -579,6 +616,9 @@
       }
     },
     "Backup and Restore" : {
+
+    },
+    "Both" : {
 
     },
     "Bottom Action Bar" : {
@@ -718,6 +758,7 @@
       }
     },
     "Choose File" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -797,6 +838,9 @@
         }
       }
     },
+    "Choose Merge to add content to your current board, or Replace to overwrite it." : {
+
+    },
     "Clear Message Box" : {
 
     },
@@ -842,6 +886,9 @@
           }
         }
       }
+    },
+    "Color Coding" : {
+
     },
     "Color Hex (#RRGGBB)" : {
       "localizations" : {
@@ -925,6 +972,9 @@
       }
     },
     "Columns: %lld" : {
+
+    },
+    "Conjunction" : {
 
     },
     "Create a new tile" : {
@@ -1210,6 +1260,9 @@
         }
       }
     },
+    "Determiner/Article" : {
+
+    },
     "Development" : {
 
     },
@@ -1493,9 +1546,6 @@
         }
       }
     },
-    "Edit phrase" : {
-
-    },
     "Edit Tile" : {
       "localizations" : {
         "de" : {
@@ -1578,9 +1628,6 @@
           }
         }
       }
-    },
-    "Editing is locked. Unlock in Settings > Admin to modify quick phrases." : {
-
     },
     "Editing is locked. Unlock in Settings to add or modify pages." : {
 
@@ -1924,12 +1971,12 @@
         }
       }
     },
-    "Exported %lld pages, %lld tiles, and %lld favorites." : {
+    "Exported %lld pages, %lld tiles, %lld favorites, %lld quick phrases." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Exported %1$lld pages, %2$lld tiles, and %3$lld favorites."
+            "value" : "Exported %1$lld pages, %2$lld tiles, %3$lld favorites, %4$lld quick phrases."
           }
         }
       }
@@ -1938,6 +1985,9 @@
 
     },
     "Finish onboarding and keep editing locked" : {
+
+    },
+    "Fitzgerald" : {
 
     },
     "Force audio to play from the device speaker" : {
@@ -2149,6 +2199,16 @@
         }
       }
     },
+    "Imported %lld pages, %lld tiles, %lld favorites, %lld quick phrases." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Imported %1$lld pages, %2$lld tiles, %3$lld favorites, %4$lld quick phrases."
+          }
+        }
+      }
+    },
     "Imported. Now %d pages, %d tiles, %d favorites." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2190,17 +2250,8 @@
         }
       }
     },
-    "Imported. Now %lld pages, %lld tiles, %lld favorites." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Imported. Now %1$lld pages, %2$lld tiles, %3$lld favorites."
-          }
-        }
-      }
-    },
     "Importing will merge content from the selected file into your current board." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2240,10 +2291,22 @@
         }
       }
     },
+    "Increase tile size for easier tapping" : {
+
+    },
+    "Infer POS for Common Words" : {
+
+    },
     "Insert quick phrase" : {
 
     },
     "Insert recent phrase" : {
+
+    },
+    "Interaction" : {
+
+    },
+    "Interjection" : {
 
     },
     "Language" : {
@@ -2327,6 +2390,9 @@
       }
     },
     "Large" : {
+
+    },
+    "Large Touch Targets" : {
 
     },
     "Layout" : {
@@ -2573,6 +2639,9 @@
     "Lock editing to prevent accidental changes" : {
 
     },
+    "Lock editing when the app goes to background" : {
+
+    },
     "Manage Pages" : {
       "localizations" : {
         "de" : {
@@ -2614,6 +2683,9 @@
       }
     },
     "Medium" : {
+
+    },
+    "Merge Into Current" : {
 
     },
     "Message" : {
@@ -2658,6 +2730,9 @@
           }
         }
       }
+    },
+    "Modified Fitzgerald" : {
+
     },
     "Move" : {
       "localizations" : {
@@ -2818,6 +2893,9 @@
           }
         }
       }
+    },
+    "Negation" : {
+
     },
     "New page name" : {
 
@@ -3065,6 +3143,9 @@
         }
       }
     },
+    "Noun" : {
+
+    },
     "Open Help & Support" : {
       "localizations" : {
         "de" : {
@@ -3231,6 +3312,9 @@
         }
       }
     },
+    "Part of Speech (Fitzgerald)" : {
+
+    },
     "Pitch" : {
 
     },
@@ -3280,6 +3364,9 @@
     "Preferred Name" : {
 
     },
+    "Preposition" : {
+
+    },
     "Preview:" : {
       "localizations" : {
         "de" : {
@@ -3323,6 +3410,9 @@
     "Privacy Policy" : {
 
     },
+    "Pronoun" : {
+
+    },
     "Pronunciation (optional)" : {
       "localizations" : {
         "de" : {
@@ -3362,6 +3452,9 @@
           }
         }
       }
+    },
+    "Question" : {
+
     },
     "Quick Phrases" : {
       "localizations" : {
@@ -3528,6 +3621,9 @@
           }
         }
       }
+    },
+    "Replace Current" : {
+
     },
     "Reseed" : {
 
@@ -3870,6 +3966,9 @@
         }
       }
     },
+    "Selection Behavior" : {
+
+    },
     "Sentence Bar" : {
       "localizations" : {
         "de" : {
@@ -4119,6 +4218,9 @@
     "Small" : {
 
     },
+    "Social" : {
+
+    },
     "Speak" : {
       "localizations" : {
         "de" : {
@@ -4158,6 +4260,9 @@
           }
         }
       }
+    },
+    "Speak: tap speaks immediately. Add: tap builds the sentence. Both: adds to the sentence and speaks." : {
+
     },
     "Speaker State: %@" : {
 
@@ -4503,17 +4608,7 @@
         }
       }
     },
-    "This is a test speech with the current settings of the %@ language, a rate of %lf, a pitch of %lf, and a volume of %lf applied." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "This is a test speech with the current settings of the %1$@ language, a rate of %2$lf, a pitch of %3$lf, and a volume of %4$lf applied."
-          }
-        }
-      }
-    },
-    "This phrase already exists." : {
+    "This is a test." : {
 
     },
     "This tile opens a category page" : {
@@ -4685,6 +4780,9 @@
     "Toggle view options from the toolbar menu" : {
 
     },
+    "Unlock editing" : {
+
+    },
     "Unlock Editing" : {
       "localizations" : {
         "de" : {
@@ -4771,6 +4869,9 @@
     "Unlock When You Need To" : {
 
     },
+    "Updated colors on %lld tiles." : {
+
+    },
     "Use Face ID / Touch ID or passcode to temporarily unlock editing. You can always re-lock in Settings." : {
 
     },
@@ -4781,6 +4882,19 @@
 
     },
     "User Info" : {
+
+    },
+    "Using %@ color for %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Using %1$@ color for %2$@."
+          }
+        }
+      }
+    },
+    "Verb" : {
 
     },
     "View Options" : {

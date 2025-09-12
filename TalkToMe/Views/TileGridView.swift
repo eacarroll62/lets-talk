@@ -23,10 +23,18 @@ struct TileGridView: View {
     @AppStorage("customGridColumns") private var customGridColumns: Int = 4
     @AppStorage("editLocked") private var editLocked: Bool = true
 
+    // Interaction prefs
+    @AppStorage("selectionBehavior") private var selectionBehaviorRaw: String = SelectionBehavior.both.rawValue
+    @AppStorage("largeTouchTargets") private var largeTouchTargets: Bool = false
+
     // View visibility toggles
     @AppStorage("showNavTiles") private var showNavTiles: Bool = true
     @AppStorage("showAddTileButton") private var showAddTileButton: Bool = true
     @AppStorage("showBottomActionBar") private var showBottomActionBar: Bool = true
+
+    // AAC scheme
+    @AppStorage("aacColorScheme") private var aacColorSchemeRaw: String = AACColorScheme.fitzgerald.rawValue
+    private var aacScheme: AACColorScheme { AACColorScheme(rawValue: aacColorSchemeRaw) ?? .fitzgerald }
 
     @State private var isPresentingEditor: Bool = false
     @State private var editingTile: Tile? = nil
@@ -41,6 +49,10 @@ struct TileGridView: View {
         pages.filter { $0.parent == nil }
     }
 
+    private var selectionBehavior: SelectionBehavior {
+        SelectionBehavior(rawValue: selectionBehaviorRaw) ?? .both
+    }
+
     var body: some View {
         let columns = gridColumns()
         // Edit mode only meaningful if not locked
@@ -48,7 +60,7 @@ struct TileGridView: View {
         let isSelecting = isEditing // selection is available whenever edit mode is active
 
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 16) {
+            LazyVGrid(columns: columns, spacing: largeTouchTargets ? 20 : 16) {
                 if showNavTiles && currentPage.wrappedValue.isRoot == false {
                     navTile(systemName: "arrow.backward.circle.fill", label: String(localized: "Back")) {
                         haptic(.light)
@@ -80,6 +92,7 @@ struct TileGridView: View {
 
                     TileButton(
                         tile: tile,
+                        aacScheme: aacScheme,
                         isEditing: isEditing,
                         isLocked: editLocked,
                         isSelecting: isSelecting,
@@ -162,7 +175,7 @@ struct TileGridView: View {
                         }
                 }
             }
-            .padding()
+            .padding(largeTouchTargets ? 20 : 16)
         }
         .navigationTitle(currentPage.wrappedValue.name)
         .sheet(isPresented: $isPresentingEditor, onDismiss: {
@@ -242,7 +255,8 @@ struct TileGridView: View {
             case .custom: return max(2, min(10, customGridColumns))
             }
         }()
-        return Array(repeating: GridItem(.flexible(minimum: 100), spacing: 16), count: count)
+        let minSize: CGFloat = largeTouchTargets ? 140 : 100
+        return Array(repeating: GridItem(.flexible(minimum: minSize), spacing: largeTouchTargets ? 20 : 16), count: count)
     }
 
     private func sortedTiles() -> [Tile] {
@@ -264,7 +278,7 @@ struct TileGridView: View {
     }
 
     private func handleTap(_ tile: Tile) {
-        // No editing interactions while locked, but normal speak/navigate still work
+        // Navigate if folder
         if let dest = tile.destinationPage {
             if dest.parent == nil {
                 dest.parent = currentPage.wrappedValue
@@ -273,10 +287,28 @@ struct TileGridView: View {
             currentPage.wrappedValue = dest
             return
         }
+
         let phrase = tile.pronunciationOverride?.isEmpty == false ? tile.pronunciationOverride! : tile.text
-        // Pass per-tile language override if set (e.g., "en", "es")
-        speaker.speak(phrase, languageOverride: tile.languageCode, policy: .replaceCurrent)
-        logRecent(text: tile.text)
+
+        switch selectionBehavior {
+        case .speak:
+            speaker.speak(phrase, languageOverride: tile.languageCode, policy: .replaceCurrent)
+            logRecent(text: tile.text)
+
+        case .addToMessage:
+            addToMessage(phrase)
+
+        case .both:
+            addToMessage(phrase)
+            speaker.speak(phrase, languageOverride: tile.languageCode, policy: .replaceCurrent)
+            logRecent(text: tile.text)
+        }
+    }
+
+    private func addToMessage(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        speaker.text = speaker.text.isEmpty ? trimmed : speaker.text + " " + trimmed
     }
 
     private func startEditing(_ tile: Tile) {
@@ -584,6 +616,7 @@ private extension View {
 
 private struct TileButton: View {
     let tile: Tile
+    let aacScheme: AACColorScheme
     let isEditing: Bool
     let isLocked: Bool
 
@@ -710,8 +743,12 @@ private struct TileButton: View {
     }
 
     private func tileBackground() -> Color {
-        if let hex = tile.colorHex, let color = Color(hex: hex) {
-            return color.opacity(0.2)
+        if let pos = tile.partOfSpeech {
+            // Prefer mapping based on selected scheme when POS is set
+            return FitzgeraldKey.color(for: pos, scheme: aacScheme, alpha: 0.2)
+        }
+        if let hex = tile.colorHex {
+            return Color(hex: hex, alpha: 0.2)
         }
         return Color.yellow.opacity(0.2)
     }
@@ -733,3 +770,4 @@ private extension Color {
         self = Color(red: r, green: g, blue: b)
     }
 }
+

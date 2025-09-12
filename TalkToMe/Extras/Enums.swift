@@ -34,3 +34,21 @@ enum ControlsStyle: String, CaseIterable {
     case compact = "Compact"
     case large = "Large"
 }
+
+// New: Selection behavior for tile/quick phrase taps
+enum SelectionBehavior: String, CaseIterable, Identifiable {
+    case speak
+    case addToMessage
+    case both
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .speak:        return String(localized: "Speak")
+        case .addToMessage: return String(localized: "Add")
+        case .both:         return String(localized: "Both")
+        }
+    }
+}
+

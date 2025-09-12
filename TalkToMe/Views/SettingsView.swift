@@ -9,11 +9,13 @@ import SwiftUI
 import AVFoundation
 import SwiftData
 import UniformTypeIdentifiers
+import LocalAuthentication
 
 struct SettingsView: View {
     @Environment(Speaker.self) private var speaker
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     @Query(sort: \Page.order) private var pages: [Page]
     @Query(sort: \Favorite.order) private var favorites: [Favorite]
@@ -32,6 +34,11 @@ struct SettingsView: View {
     @AppStorage("predictionEnabled") private var predictionEnabled: Bool = true
     @AppStorage("routeToSpeaker") private var routeToSpeaker: Bool = false
 
+    // Interaction preferences
+    @AppStorage("selectionBehavior") private var selectionBehaviorRaw: String = SelectionBehavior.both.rawValue
+    @AppStorage("largeTouchTargets") private var largeTouchTargets: Bool = false
+    @AppStorage("autoRelockOnBackground") private var autoRelockOnBackground: Bool = true
+
     // View visibility toggles
     @AppStorage("showNavTiles") private var showNavTiles: Bool = true
     @AppStorage("showAddTileButton") private var showAddTileButton: Bool = true
@@ -42,6 +49,9 @@ struct SettingsView: View {
 
     // Guided edit lock
     @AppStorage("editLocked") private var editLocked: Bool = true
+
+    // AAC color scheme
+    @AppStorage("aacColorScheme") private var aacColorSchemeRaw: String = AACColorScheme.fitzgerald.rawValue
 
     // User info
     @AppStorage("userPreferredName") private var userPreferredName: String = ""
@@ -71,6 +81,7 @@ struct SettingsView: View {
     @State private var lastExportError: String?
     @State private var exportSummary: String?
     @State private var importSummary: String?
+    @State private var importMode: ImportMode = .merge
 
     // Development
     @State private var showReseedConfirm: Bool = false
@@ -88,6 +99,10 @@ struct SettingsView: View {
     @State private var showLayoutSettings: Bool = false
     @State private var showQuickPhrasesDisclosure: Bool = false
     @State private var showUserInfoDisclosure: Bool = false
+    @State private var showInteractionSettings: Bool = false
+
+    // Migration feedback
+    @State private var migrationSummary: String?
 
     private let rateMin = Double(AVSpeechUtteranceMinimumSpeechRate)
     private let rateMax = Double(AVSpeechUtteranceMaximumSpeechRate)
@@ -107,6 +122,20 @@ struct SettingsView: View {
         Binding(
             get: { GridSizePreference(rawValue: gridSizeRaw) ?? .medium },
             set: { gridSizeRaw = $0.rawValue }
+        )
+    }
+
+    private var aacColorScheme: Binding<AACColorScheme> {
+        Binding(
+            get: { AACColorScheme(rawValue: aacColorSchemeRaw) ?? .fitzgerald },
+            set: { aacColorSchemeRaw = $0.rawValue }
+        )
+    }
+
+    private var selectionBehavior: Binding<SelectionBehavior> {
+        Binding(
+            get: { SelectionBehavior(rawValue: selectionBehaviorRaw) ?? .both },
+            set: { selectionBehaviorRaw = $0.rawValue }
         )
     }
 
@@ -157,6 +186,61 @@ struct SettingsView: View {
                     Text(String(localized: "Suggestions adapt to your tiles and favorites."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+
+                // Color Coding + Migration
+                Section(header: Text(String(localized: "Color Coding"))) {
+                    Picker(String(localized: "AAC Color Scheme"), selection: aacColorScheme) {
+                        ForEach(AACColorScheme.allCases) { scheme in
+                            Text(scheme.displayName).tag(scheme)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Text(String(localized: "Applies to tiles that have a Part of Speech assigned."))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        Task { @MainActor in
+                            do {
+                                let scheme = AACColorScheme(rawValue: aacColorSchemeRaw) ?? .fitzgerald
+                                let result = try AACColorMigration.applySchemeColors(modelContext: modelContext,
+                                                                                      scheme: scheme,
+                                                                                      overwrite: true)
+                                migrationSummary = String(localized: "Updated colors on \(result.updatedTiles) tiles.")
+                            } catch {
+                                migrationSummary = error.localizedDescription
+                            }
+                        }
+                    } label: {
+                        Label(String(localized: "Apply Scheme Colors to Tiles"), systemImage: "paintpalette")
+                    }
+                    .disabled(editLocked)
+
+                    Button {
+                        Task { @MainActor in
+                            do {
+                                let scheme = AACColorScheme(rawValue: aacColorSchemeRaw) ?? .fitzgerald
+                                let result = try AACColorMigration.inferPOSForCommonWords(modelContext: modelContext,
+                                                                                          scheme: scheme,
+                                                                                          overwritePOS: false,
+                                                                                          setColor: true,
+                                                                                          overwriteColor: false)
+                                migrationSummary = String(localized: "Assigned POS to \(result.assignedPOS) tiles and updated \(result.updatedTiles) colors.")
+                            } catch {
+                                migrationSummary = error.localizedDescription
+                            }
+                        }
+                    } label: {
+                        Label(String(localized: "Infer POS for Common Words"), systemImage: "text.badge.plus")
+                    }
+                    .disabled(editLocked)
+
+                    if let summary = migrationSummary {
+                        Text(summary)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 // Speech settings inside a disclosure
@@ -218,6 +302,32 @@ struct SettingsView: View {
                             .accessibilityHint(Text(String(localized: "Force audio to play from the device speaker")))
                     } label: {
                         Label(String(localized: "Audio"), systemImage: "speaker.wave.3.fill")
+                    }
+                }
+
+                // Interaction inside a disclosure
+                Section {
+                    DisclosureGroup(isExpanded: $showInteractionSettings) {
+                        Picker(String(localized: "Selection Behavior"), selection: selectionBehavior) {
+                            ForEach(SelectionBehavior.allCases) { behavior in
+                                Text(behavior.displayName).tag(behavior)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityIdentifier("SelectionBehaviorPicker")
+
+                        // Hint explaining modes
+                        Text(String(localized: "Speak: tap speaks immediately. Add: tap builds the sentence. Both: adds to the sentence and speaks."))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        Toggle(String(localized: "Large Touch Targets"), isOn: $largeTouchTargets)
+                            .accessibilityHint(Text(String(localized: "Increase tile size for easier tapping")))
+
+                        Toggle(String(localized: "Auto‑Relock on Background"), isOn: $autoRelockOnBackground)
+                            .accessibilityHint(Text(String(localized: "Lock editing when the app goes to background")))
+                    } label: {
+                        Label(String(localized: "Interaction"), systemImage: "hand.tap")
                     }
                 }
 
@@ -360,17 +470,22 @@ struct SettingsView: View {
                         isPresented: $showImportConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button(String(localized: "Choose File")) {
+                        Button(String(localized: "Merge Into Current")) {
+                            importMode = .merge
+                            isImporting = true
+                        }
+                        Button(String(localized: "Replace Current"), role: .destructive) {
+                            importMode = .replace
                             isImporting = true
                         }
                         Button(String(localized: "Cancel"), role: .cancel) { showImportConfirm = false }
                     } message: {
-                        Text(String(localized: "Importing will merge content from the selected file into your current board."))
+                        Text(String(localized: "Choose Merge to add content to your current board, or Replace to overwrite it."))
                     }
                     .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
                         switch result {
                         case .success(let url):
-                            importData(from: url)
+                            importData(from: url, mode: importMode)
                         case .failure(let error):
                             lastExportError = error.localizedDescription
                             importSummary = nil
@@ -455,13 +570,29 @@ struct SettingsView: View {
                 speaker.setAudioRouting(toSpeaker: routeToSpeaker)
             }
             .onChange(of: language) {
-                // Inside SettingsView.onChange(of: language)
                 refreshVoices()
                 PredictionService.shared.reset()
-
-                // If current identifier doesn't match the new language, pick a good default
                 if let best = VoicePicker.bestVoiceIdentifier(for: language) {
                     identifier = best
+                }
+            }
+            // Automatically apply scheme colors to POS-tagged tiles when the scheme changes.
+            .onChange(of: aacColorSchemeRaw) { _, _ in
+                Task { @MainActor in
+                    let scheme = AACColorScheme(rawValue: aacColorSchemeRaw) ?? .fitzgerald
+                    do {
+                        let result = try AACColorMigration.applySchemeColors(modelContext: modelContext,
+                                                                             scheme: scheme,
+                                                                             overwrite: false)
+                        migrationSummary = String(localized: "Applied scheme to \(result.updatedTiles) tiles.")
+                    } catch {
+                        migrationSummary = error.localizedDescription
+                    }
+                }
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if autoRelockOnBackground && newPhase == .background {
+                    editLocked = true
                 }
             }
             .confirmationDialog(
@@ -486,198 +617,500 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Quick Phrases
+    // MARK: - Voice helpers
 
-    private func quickPhrasesFooter() -> some View {
-        Group {
-            if editLocked {
-                Text(String(localized: "Editing is locked. Unlock in Settings > Admin to modify quick phrases."))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else if !newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !canAddNewQuickPhrase() {
-                Text(String(localized: "This phrase already exists."))
-                    .font(.footnote)
-                    .foregroundStyle(.red)
+    @MainActor
+    private func refreshVoices() {
+        // Filter voices for the selected language
+        let voices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language == language }
+        availableVoices = voices
+
+        // Ensure current identifier is valid; otherwise select a sensible default
+        if !voices.contains(where: { $0.identifier == identifier }) {
+            if let best = VoicePicker.bestVoiceIdentifier(for: language) {
+                identifier = best
+            } else if let first = voices.first?.identifier {
+                identifier = first
             }
         }
+    }
+
+    // MARK: - Quick Phrases
+
+    @MainActor
+    private func addQuickPhrase() {
+        guard !editLocked else { return }
+        let trimmed = newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Prevent duplicates (case-insensitive)
+        guard !quickPhrases.contains(where: { $0.text.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
+            return
+        }
+
+        // Append to end
+        let nextOrder = (quickPhrases.map { $0.order }.max() ?? -1) + 1
+        let qp = QuickPhrase(text: trimmed, order: nextOrder)
+        modelContext.insert(qp)
+        do {
+            try modelContext.save()
+            newQuickPhrase = ""
+        } catch {
+            lastExportError = error.localizedDescription
+        }
+    }
+
+    private func canAddNewQuickPhrase() -> Bool {
+        let trimmed = newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        // Disallow duplicates (case-insensitive)
+        return !quickPhrases.contains { $0.text.caseInsensitiveCompare(trimmed) == .orderedSame }
     }
 
     @ViewBuilder
     private func quickPhraseRow(_ qp: QuickPhrase) -> some View {
         HStack {
-            if let editing = qpEdits[qp.id] {
-                TextField(String(localized: "Edit phrase"), text: Binding(
-                    get: { editing },
+            if let current = qpEdits[qp.id] {
+                TextField("", text: Binding(
+                    get: { current },
                     set: { qpEdits[qp.id] = $0 }
                 ))
-                .disabled(editLocked)
-                .opacity(editLocked ? 0.6 : 1.0)
-
-                Button {
-                    saveQuickPhraseEdit(qp)
-                } label: {
-                    Image(systemName: "checkmark.circle.fill")
-                }
-                .disabled(editLocked || !canSaveEdit(for: qp))
-                .opacity((editLocked || !canSaveEdit(for: qp)) ? 0.5 : 1.0)
-
-                Button {
-                    qpEdits.removeValue(forKey: qp.id)
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                }
+                .textInputAutocapitalization(.sentences)
                 .disabled(editLocked)
                 .opacity(editLocked ? 0.5 : 1.0)
             } else {
                 Text(qp.text)
-                    .lineLimit(1)
-                Spacer()
-                Button {
-                    if !editLocked {
+            }
+            Spacer()
+            if editLocked {
+                EmptyView()
+            } else {
+                if qpEdits[qp.id] == nil {
+                    Button {
                         qpEdits[qp.id] = qp.text
+                    } label: {
+                        Image(systemName: "pencil")
                     }
-                } label: {
-                    Image(systemName: "pencil")
+                    .buttonStyle(.plain)
+
+                    Button(role: .destructive) {
+                        confirmDeleteQP = qp
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        saveQuickPhraseEdit(qp)
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        qpEdits.removeValue(forKey: qp.id)
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.plain)
                 }
-                .disabled(editLocked)
-                .opacity(editLocked ? 0.5 : 1.0)
             }
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                if !editLocked {
-                    confirmDeleteQP = qp
-                }
-            } label: {
-                Label(String(localized: "Delete"), systemImage: "trash")
-            }
-            .disabled(editLocked)
-        }
     }
 
-    private func canAddNewQuickPhrase() -> Bool {
-        let text = newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return false }
-        return !quickPhrases.contains { $0.text.caseInsensitiveCompare(text) == .orderedSame }
-    }
-
-    private func canSaveEdit(for qp: QuickPhrase) -> Bool {
-        guard let text = qpEdits[qp.id]?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
-            return false
-        }
-        if text.caseInsensitiveCompare(qp.text) == .orderedSame { return true }
-        return !quickPhrases.contains { $0.id != qp.id && $0.text.caseInsensitiveCompare(text) == .orderedSame }
-    }
-
-    private func addQuickPhrase() {
-        guard !editLocked else { return }
-        let text = newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        guard !quickPhrases.contains(where: { $0.text.caseInsensitiveCompare(text) == .orderedSame }) else { return }
-        let nextOrder = (quickPhrases.map { $0.order }.max() ?? -1) + 1
-        modelContext.insert(QuickPhrase(text: text, order: nextOrder))
-        try? modelContext.save()
-        newQuickPhrase = ""
-    }
-
+    @MainActor
     private func saveQuickPhraseEdit(_ qp: QuickPhrase) {
         guard !editLocked else { return }
-        guard let newText = qpEdits[qp.id]?.trimmingCharacters(in: .whitespacesAndNewlines), !newText.isEmpty else { return }
-        guard canSaveEdit(for: qp) else { return }
-        qp.text = newText
-        qpEdits.removeValue(forKey: qp.id)
-        try? modelContext.save()
+        guard let edited = qpEdits[qp.id]?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !edited.isEmpty else {
+            qpEdits.removeValue(forKey: qp.id)
+            return
+        }
+        if quickPhrases.contains(where: { $0.id != qp.id && $0.text.caseInsensitiveCompare(edited) == .orderedSame }) {
+            return
+        }
+        qp.text = edited
+        do {
+            try modelContext.save()
+            qpEdits.removeValue(forKey: qp.id)
+        } catch {
+            lastExportError = error.localizedDescription
+        }
     }
 
+    @MainActor
+    private func moveQuickPhrases(from source: IndexSet, to destination: Int) {
+        guard !editLocked else { return }
+        var items = quickPhrases.sorted { $0.order < $1.order }
+        items.move(fromOffsets: source, toOffset: destination)
+        for (idx, qp) in items.enumerated() {
+            qp.order = idx
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            lastExportError = error.localizedDescription
+        }
+    }
+
+    @ViewBuilder
+    private func quickPhrasesFooter() -> some View {
+        Text(String(localized: "Add short phrases you use often. Reorder them to prioritize."))
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+    }
+
+    @MainActor
     private func deleteQuickPhrase(_ qp: QuickPhrase) {
         guard !editLocked else { return }
+        let remaining = quickPhrases
+            .filter { $0.id != qp.id }
+            .sorted { $0.order < $1.order }
         modelContext.delete(qp)
-        let ordered = quickPhrases.sorted(by: { $0.order < $1.order })
-        for (i, item) in ordered.enumerated() { item.order = i }
-        try? modelContext.save()
-    }
-
-    private func moveQuickPhrases(from source: IndexSet, to destination: Int) {
-        var ordered = quickPhrases.sorted(by: { $0.order < $1.order })
-        ordered.move(fromOffsets: source, toOffset: destination)
-        for (i, qp) in ordered.enumerated() {
-            qp.order = i
+        for (idx, item) in remaining.enumerated() {
+            item.order = idx
         }
-        try? modelContext.save()
-    }
-
-    // MARK: - Auth
-
-    private func authenticateAndUnlock() {
-        Task {
-            let success = await AuthService.authenticate(reason: String(localized: "Unlock editing to modify tiles and pages."))
-            if success {
-                editLocked = false
-            }
+        do {
+            try modelContext.save()
+        } catch {
+            lastExportError = error.localizedDescription
         }
+        confirmDeleteQP = nil
     }
 
-    // MARK: - Voice
+    // MARK: - Languages
 
     private func fetchAvailableLanguages() {
-        // Unique, sorted language codes available from installed voices
-        availableLanguages = Array(Set(AVSpeechSynthesisVoice.speechVoices().map { $0.language })).sorted()
-    }
-
-    private func refreshVoices() {
-        availableVoices = AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix(language) }
-            .sorted(by: { $0.name < $1.name })
-        if !availableVoices.contains(where: { $0.identifier == identifier }) {
-            identifier = availableVoices.first?.identifier ?? ""
+        let codes = Set(AVSpeechSynthesisVoice.speechVoices().map { $0.language })
+        availableLanguages = codes.sorted()
+        if !availableLanguages.contains(language) {
+            language = availableLanguages.first ?? "en-US"
         }
     }
 
-    private func testSpeech() {
-        // Keep as simple playback to respect the app's Speaker settings
-        let phrase = String(localized: "This is a test speech with the current settings of the \(language) language, a rate of \(rate), a pitch of \(pitch), and a volume of \(volume) applied.")
-        speaker.speak(phrase)
+    // MARK: - Backup (full export/import with embedded images)
+
+    private enum ImportMode { case merge, replace }
+
+    private struct ExportPackage: Codable {
+        let version: Int
+        let exportedAt: Date
+        let pages: [PageNode]
+        let favorites: [FavoriteDTO]
+        let quickPhrases: [QuickPhraseDTO]
+        let recents: [RecentDTO]
+        // Map relative image path -> base64 PNG
+        let images: [String: String]
     }
 
-    // MARK: - Backup
+    private struct PageNode: Codable {
+        var id: UUID
+        var name: String
+        var order: Int
+        var isRoot: Bool
+        var tiles: [TileDTO]
+        var children: [PageNode]
+    }
+
+    private struct TileDTO: Codable {
+        var id: UUID
+        var text: String
+        var symbolName: String?
+        var colorHex: String?
+        var order: Int
+        var isCore: Bool
+        var pronunciationOverride: String?
+        var imageRelativePath: String?
+        var size: Double?
+        var languageCode: String?
+        var partOfSpeechRaw: String?
+    }
+
+    private struct FavoriteDTO: Codable {
+        var text: String
+        var order: Int
+    }
+
+    private struct QuickPhraseDTO: Codable {
+        var id: UUID
+        var text: String
+        var order: Int
+    }
+
+    private struct RecentDTO: Codable {
+        var id: UUID
+        var text: String
+        var timestamp: Date
+        var count: Int
+    }
+
+    private func makePackage() -> ExportPackage {
+        let imagesDict: [String: String] = pages
+            .flatMap { $0.tiles }
+            .compactMap { $0.imageRelativePath }
+            .reduce(into: [String: String]()) { dict, rel in
+                let url = TileImagesStorage.imagesDirectory.appendingPathComponent(rel)
+                if let data = try? Data(contentsOf: url) {
+                    dict[rel] = data.base64EncodedString()
+                }
+            }
+
+        func node(from page: Page) -> PageNode {
+            let tiles = page.tiles.sorted(by: { $0.order < $1.order }).map { t in
+                TileDTO(
+                    id: t.id,
+                    text: t.text,
+                    symbolName: t.symbolName,
+                    colorHex: t.colorHex,
+                    order: t.order,
+                    isCore: t.isCore,
+                    pronunciationOverride: t.pronunciationOverride,
+                    imageRelativePath: t.imageRelativePath,
+                    size: t.size,
+                    languageCode: t.languageCode,
+                    partOfSpeechRaw: t.partOfSpeechRaw
+                )
+            }
+            let kids = page.children.sorted(by: { $0.order < $1.order }).map(node(from:))
+            return PageNode(id: page.id, name: page.name, order: page.order, isRoot: page.isRoot, tiles: tiles, children: kids)
+        }
+
+        let roots = pages.filter { $0.parent == nil }.sorted(by: { $0.order < $1.order })
+        let pageNodes = roots.map(node(from:))
+
+        let favs = favorites.sorted(by: { $0.order < $1.order }).map { FavoriteDTO(text: $0.text, order: $0.order) }
+        let qps = quickPhrases.sorted(by: { $0.order < $1.order }).map { QuickPhraseDTO(id: $0.id, text: $0.text, order: $0.order) }
+
+        // Fetch recents sorted by timestamp desc (cap not necessary for export)
+        let recentsFetch = FetchDescriptor<Recent>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
+        let recentsAll = (try? modelContext.fetch(recentsFetch)) ?? []
+        let recentsDTO = recentsAll.map { RecentDTO(id: $0.id, text: $0.text, timestamp: $0.timestamp, count: $0.count) }
+
+        return ExportPackage(
+            version: 1,
+            exportedAt: Date(),
+            pages: pageNodes,
+            favorites: favs,
+            quickPhrases: qps,
+            recents: recentsDTO,
+            images: imagesDict
+        )
+    }
 
     private func exportData() {
         isExporting = true
         lastExportError = nil
         exportSummary = nil
-        Task {
+
+        Task { @MainActor in
             do {
-                let url = try await ExportService.exportJSON(
-                    modelContext: modelContext,
-                    pages: pages,
-                    tiles: allTiles,
-                    favorites: favorites
-                )
+                let pkg = makePackage()
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
+                let data = try encoder.encode(pkg)
+                let url = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("Board-\(Int(Date().timeIntervalSince1970)).ltboard.json")
+                try data.write(to: url, options: .atomic)
                 exportURL = url
-                exportSummary = String(localized: "Exported \(pages.count) pages, \(allTiles.count) tiles, and \(favorites.count) favorites.")
+
+                let tileCount = pages.flatMap { $0.tiles }.count
+                exportSummary = String(localized: "Exported \(pages.count) pages, \(tileCount) tiles, \(favorites.count) favorites, \(quickPhrases.count) quick phrases.")
             } catch {
                 lastExportError = error.localizedDescription
-                exportSummary = nil
             }
             isExporting = false
         }
     }
 
-    private func importData(from url: URL) {
+    private func importData(from url: URL, mode: ImportMode) {
         lastExportError = nil
         importSummary = nil
-        Task {
+
+        Task { @MainActor in
             do {
-                try await ExportService.import(modelContext: modelContext, from: url)
-                let pageCount = pages.count
-                let tileCount = pages.flatMap { $0.tiles }.count
-                let favCount = favorites.count
-                importSummary = String(localized: "Imported. Now \(pageCount) pages, \(tileCount) tiles, \(favCount) favorites.")
+                let data = try Data(contentsOf: url)
+                let decoder = JSONDecoder()
+                let pkg = try decoder.decode(ExportPackage.self, from: data)
+
+                if mode == .replace {
+                    try wipeAllContent()
+                }
+
+                // Restore images first, return a map of oldRelative -> newRelative
+                let imageMap = restoreImages(pkg.images)
+
+                // Rebuild pages recursively, preserving order; if merging, append after current max order
+                let currentMaxOrder = (pages.map { $0.order }.max() ?? -1)
+                var baseOrderOffset = max(0, currentMaxOrder + 1)
+                for node in pkg.pages.sorted(by: { $0.order < $1.order }) {
+                    let _ = importPageNode(node, parent: nil, orderOffset: &baseOrderOffset, imageMap: imageMap)
+                }
+
+                // Favorites: merge by text uniqueness
+                let existingFavs = (try? modelContext.fetch(FetchDescriptor<Favorite>())) ?? []
+                var favOrderStart = (existingFavs.map { $0.order }.max() ?? -1) + 1
+                for f in pkg.favorites.sorted(by: { $0.order < $1.order }) {
+                    if existingFavs.contains(where: { $0.text.caseInsensitiveCompare(f.text) == .orderedSame }) {
+                        continue
+                    }
+                    modelContext.insert(Favorite(text: f.text, order: favOrderStart))
+                    favOrderStart += 1
+                }
+
+                // Quick Phrases: merge by text
+                let existingQPs = (try? modelContext.fetch(FetchDescriptor<QuickPhrase>())) ?? []
+                var qpOrderStart = (existingQPs.map { $0.order }.max() ?? -1) + 1
+                for q in pkg.quickPhrases.sorted(by: { $0.order < $1.order }) {
+                    if existingQPs.contains(where: { $0.text.caseInsensitiveCompare(q.text) == .orderedSame }) {
+                        continue
+                    }
+                    modelContext.insert(QuickPhrase(text: q.text, order: qpOrderStart))
+                    qpOrderStart += 1
+                }
+
+                // Recents: merge by text (sum counts, keep latest timestamp)
+                let existingRecents = (try? modelContext.fetch(FetchDescriptor<Recent>())) ?? []
+                for r in pkg.recents {
+                    if let match = existingRecents.first(where: { $0.text == r.text }) {
+                        match.count += r.count
+                        match.timestamp = max(match.timestamp, r.timestamp)
+                    } else {
+                        modelContext.insert(Recent(id: r.id, text: r.text, timestamp: r.timestamp, count: r.count))
+                    }
+                }
+
+                try modelContext.save()
+
+                let importedTileCount = countTiles(in: pkg.pages)
+                importSummary = String(localized: "Imported \(pkg.pages.count) pages, \(importedTileCount) tiles, \(pkg.favorites.count) favorites, \(pkg.quickPhrases.count) quick phrases.")
             } catch {
                 lastExportError = error.localizedDescription
-                importSummary = nil
             }
         }
+    }
+
+    private func countTiles(in nodes: [PageNode]) -> Int {
+        nodes.reduce(0) { acc, node in
+            acc + node.tiles.count + countTiles(in: node.children)
+        }
+    }
+
+    private func wipeAllContent() throws {
+        // Delete tile images folder
+        TileImagesStorage.delete(relativePath: nil) // noop, but keep for symmetry
+        let dir = TileImagesStorage.imagesDirectory
+        try? FileManager.default.removeItem(at: dir)
+
+        // Wipe SwiftData entities
+        try deleteAll(Favorite.self)
+        try deleteAll(Recent.self)
+        try deleteAll(QuickPhrase.self)
+        try deleteAll(Tile.self)
+        try deleteAll(Page.self)
+    }
+
+    private func deleteAll<T>(_ type: T.Type) throws where T: PersistentModel {
+        let descriptor = FetchDescriptor<T>()
+        let items = try modelContext.fetch(descriptor)
+        for item in items {
+            modelContext.delete(item)
+        }
+    }
+
+    private func restoreImages(_ images: [String: String]) -> [String: String] {
+        var mapping: [String: String] = [:]
+        for (oldRel, b64) in images {
+            if let data = Data(base64Encoded: b64), let newRel = TileImagesStorage.savePNG(data) {
+                mapping[oldRel] = newRel
+            }
+        }
+        return mapping
+    }
+
+    @discardableResult
+    private func importPageNode(_ node: PageNode, parent: Page?, orderOffset: inout Int, imageMap: [String: String]) -> Page {
+        // Create page with appended order if merging
+        let page = Page(id: node.id, name: node.name, order: orderOffset, isRoot: parent == nil ? node.isRoot : false)
+        page.parent = parent
+        modelContext.insert(page)
+        orderOffset += 1
+
+        // Tiles
+        var order = 0
+        for t in node.tiles.sorted(by: { $0.order < $1.order }) {
+            let newRel = t.imageRelativePath.flatMap { imageMap[$0] }
+            let tile = Tile(
+                id: t.id,
+                text: t.text,
+                symbolName: t.symbolName,
+                colorHex: t.colorHex,
+                order: order,
+                isCore: t.isCore,
+                pronunciationOverride: t.pronunciationOverride,
+                destinationPage: nil,
+                page: page,
+                imageRelativePath: newRel,
+                size: t.size,
+                languageCode: t.languageCode,
+                partOfSpeechRaw: t.partOfSpeechRaw
+            )
+            modelContext.insert(tile)
+            page.tiles.append(tile)
+            order += 1
+        }
+
+        // Children
+        for child in node.children.sorted(by: { $0.order < $1.order }) {
+            let childPage = importPageNode(child, parent: page, orderOffset: &orderOffset, imageMap: imageMap)
+            // Link tile if a link tile existed originally is not guaranteed; users create link tiles manually.
+            // We keep hierarchy; link tiles can be recreated by user if needed.
+            _ = childPage
+        }
+
+        return page
+    }
+
+    // MARK: - Admin
+
+    private func authenticateAndUnlock() {
+        let context = LAContext()
+        var error: NSError?
+
+        let reason = String(localized: "Unlock editing")
+
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
+            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, _ in
+                DispatchQueue.main.async {
+                    if success {
+                        editLocked = false
+                    }
+                }
+            }
+        } else {
+            // Fallback: if no biometrics/passcode available, just toggle (you may want a custom passcode UI)
+            editLocked = false
+        }
+    }
+
+    // MARK: - Test Speech
+
+    @MainActor
+    private func testSpeech() {
+        let sample = String(localized: "This is a test.")
+        let utterance = AVSpeechUtterance(string: sample)
+
+        if let voice = AVSpeechSynthesisVoice(identifier: identifier) {
+            utterance.voice = voice
+        } else {
+            utterance.voice = AVSpeechSynthesisVoice(language: language)
+        }
+
+        utterance.rate = Float(rate)
+        utterance.pitchMultiplier = Float(pitch)
+        utterance.volume = Float(volume)
+
+        let synthesizer = AVSpeechSynthesizer()
+        synthesizer.speak(utterance)
     }
 }
 
@@ -686,4 +1119,3 @@ struct SettingsView: View {
         .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }
-

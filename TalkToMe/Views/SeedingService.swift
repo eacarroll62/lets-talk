@@ -56,32 +56,42 @@ enum SeedingService {
         let root = Page(name: "Home", order: 0, isRoot: true)
         modelContext.insert(root)
 
-        let coreWords: [(String, String?, String?)] = [
-            ("I", "person.fill", "#F9D65C"),
-            ("you", "person.2.fill", "#E4C1F9"),
-            ("want", "hand.point.right.fill", "#AEDFF7"),
-            ("like", "hand.thumbsup.fill", "#C7F9CC"),
-            ("don’t", "hand.thumbsdown.fill", "#FFADAD"),
-            ("more", "plus.circle.fill", "#B5E48C"),
-            ("help", "hand.raised.fill", "#FFD6E0"),
-            ("go", "arrow.right.circle.fill", "#ACE7FF"),
-            ("stop", "stop.circle.fill", "#FFADAD"),
-            ("yes", "checkmark.circle.fill", "#ACE7FF"),
-            ("no", "xmark.circle.fill", "#FFADAD"),
-            ("here", "mappin.circle.fill", "#AEDFF7"),
-            ("there", "location.circle.fill", "#AEDFF7"),
-            ("this", "hand.point.up.left.fill", "#FFD6E0"),
-            ("that", "hand.point.up.left", "#FFD6E0"),
-            ("what", "questionmark.circle.fill", "#E4C1F9"),
-            ("where", "mappin.and.ellipse", "#E4C1F9"),
-            ("now", "clock.fill", "#F9D65C"),
-            ("later", "clock.badge", "#F9D65C"),
-            ("eat", "fork.knife", "#FFCC99"),
-            ("drink", "takeoutbag.and.cup.and.straw.fill", "#99CCFF"),
+        // text, symbol, POS
+        let coreWords: [(String, String?, PartOfSpeech?)] = [
+            ("I", "person.fill", .pronoun),
+            ("you", "person.2.fill", .pronoun),
+            ("want", "hand.point.right.fill", .verb),
+            ("like", "hand.thumbsup.fill", .verb),
+            ("don’t", "hand.thumbsdown.fill", .negation),
+            ("more", "plus.circle.fill", .determiner),
+            ("help", "hand.raised.fill", .social),
+            ("go", "arrow.right.circle.fill", .verb),
+            ("stop", "stop.circle.fill", .verb),
+            ("yes", "checkmark.circle.fill", .social),
+            ("no", "xmark.circle.fill", .negation),
+            ("here", "mappin.circle.fill", .adverb),
+            ("there", "location.circle.fill", .adverb),
+            ("this", "hand.point.up.left.fill", .determiner),
+            ("that", "hand.point.up.left", .determiner),
+            ("what", "questionmark.circle.fill", .question),
+            ("where", "mappin.and.ellipse", .question),
+            ("now", "clock.fill", .adverb),
+            ("later", "clock.badge", .adverb),
+            ("eat", "fork.knife", .verb),
+            ("drink", "takeoutbag.and.cup.and.straw.fill", .verb),
         ]
 
         for (idx, item) in coreWords.enumerated() {
-            let tile = Tile(text: item.0, symbolName: item.1, colorHex: item.2, order: idx, isCore: true, page: root)
+            let color = item.2.map { FitzgeraldKey.colorHex(for: $0) }
+            let tile = Tile(
+                text: item.0,
+                symbolName: item.1,
+                colorHex: color,
+                order: idx,
+                isCore: true,
+                page: root,
+                partOfSpeechRaw: item.2?.rawValue
+            )
             modelContext.insert(tile)
             root.tiles.append(tile)
         }
@@ -137,18 +147,33 @@ enum SeedingService {
             return p
         }
 
-        func addLinkTile(on page: Page, text: String, symbol: String?, colorHex: String?, destination: Page) {
+        func addLinkTile(on page: Page, text: String, symbol: String?, pos: PartOfSpeech? = nil, destination: Page) {
             if page.tiles.contains(where: { $0.destinationPage?.id == destination.id }) { return }
             let order = page.tiles.count
-            let tile = Tile(text: text, symbolName: symbol, colorHex: colorHex, order: order, isCore: false, destinationPage: destination, page: page)
+            let colorHex = pos.map { FitzgeraldKey.colorHex(for: $0) } ?? "#C7B1FF"
+            let tile = Tile(text: text,
+                            symbolName: symbol,
+                            colorHex: colorHex,
+                            order: order,
+                            isCore: false,
+                            destinationPage: destination,
+                            page: page,
+                            partOfSpeechRaw: pos?.rawValue)
             modelContext.insert(tile)
             page.tiles.append(tile)
         }
 
-        func addSpeakTile(on page: Page, text: String, symbol: String?, colorHex: String?) {
+        func addSpeakTile(on page: Page, text: String, symbol: String?, pos: PartOfSpeech? = nil) {
             if page.tiles.contains(where: { $0.text == text && $0.destinationPage == nil }) { return }
             let order = page.tiles.count
-            let tile = Tile(text: text, symbolName: symbol, colorHex: colorHex, order: order, isCore: false, page: page)
+            let colorHex = pos.map { FitzgeraldKey.colorHex(for: $0) } ?? "#C7B1FF"
+            let tile = Tile(text: text,
+                            symbolName: symbol,
+                            colorHex: colorHex,
+                            order: order,
+                            isCore: false,
+                            page: page,
+                            partOfSpeechRaw: pos?.rawValue)
             modelContext.insert(tile)
             page.tiles.append(tile)
         }
@@ -173,41 +198,41 @@ enum SeedingService {
         let numbersColors = getOrCreatePage(name: "Numbers/Colors", parent: home)
         let letters = getOrCreatePage(name: "Letters", parent: home)
 
-        // Link tiles on Home
-        addLinkTile(on: home, text: "People", symbol: "person.2.fill", colorHex: "#C7B1FF", destination: people)
-        addLinkTile(on: home, text: "Actions", symbol: "figure.walk.motion", colorHex: "#9AD0F5", destination: actions)
-        addLinkTile(on: home, text: "Feelings", symbol: "face.smiling", colorHex: "#FFD6E0", destination: feelings)
-        addLinkTile(on: home, text: "Needs", symbol: "exclamationmark.bubble", colorHex: "#F9D65C", destination: needs)
-        addLinkTile(on: home, text: "Places", symbol: "house.fill", colorHex: "#AEDFF7", destination: places)
-        addLinkTile(on: home, text: "Food & Drink", symbol: "fork.knife", colorHex: "#FFCC99", destination: food)
-        addLinkTile(on: home, text: "Activities", symbol: "gamecontroller", colorHex: "#ACE7FF", destination: activities)
-        addLinkTile(on: home, text: "School/Work", symbol: "book.closed", colorHex: "#E4C1F9", destination: school)
-        addLinkTile(on: home, text: "Time", symbol: "clock.fill", colorHex: "#F9D65C", destination: time)
-        addLinkTile(on: home, text: "Describing", symbol: "textformat.size", colorHex: "#B5E48C", destination: describing)
-        addLinkTile(on: home, text: "Questions", symbol: "questionmark.circle", colorHex: "#C7B1FF", destination: questions)
-        addLinkTile(on: home, text: "Social", symbol: "bubble.left.and.bubble.right.fill", colorHex: "#ACE7FF", destination: social)
-        addLinkTile(on: home, text: "Body/Health", symbol: "cross.case.fill", colorHex: "#FFD6E0", destination: body)
-        addLinkTile(on: home, text: "Animals", symbol: "pawprint.fill", colorHex: "#C7F9CC", destination: animals)
-        addLinkTile(on: home, text: "Clothing", symbol: "tshirt.fill", colorHex: "#FFE28A", destination: clothing)
-        addLinkTile(on: home, text: "Weather", symbol: "cloud.sun.fill", colorHex: "#9AD0F5", destination: weather)
-        addLinkTile(on: home, text: "Numbers/Colors", symbol: "paintpalette", colorHex: "#FFE28A", destination: numbersColors)
-        addLinkTile(on: home, text: "Letters", symbol: "textformat.abc", colorHex: "#FFD6E0", destination: letters)
+        // Link tiles on Home (use POS where it makes sense)
+        addLinkTile(on: home, text: "People", symbol: "person.2.fill", pos: .pronoun, destination: people)
+        addLinkTile(on: home, text: "Actions", symbol: "figure.walk.motion", pos: .verb, destination: actions)
+        addLinkTile(on: home, text: "Feelings", symbol: "face.smiling", pos: .adjective, destination: feelings)
+        addLinkTile(on: home, text: "Needs", symbol: "exclamationmark.bubble", pos: .social, destination: needs)
+        addLinkTile(on: home, text: "Places", symbol: "house.fill", pos: .preposition, destination: places)
+        addLinkTile(on: home, text: "Food & Drink", symbol: "fork.knife", pos: .noun, destination: food)
+        addLinkTile(on: home, text: "Activities", symbol: "gamecontroller", pos: .verb, destination: activities)
+        addLinkTile(on: home, text: "School/Work", symbol: "book.closed", pos: .noun, destination: school)
+        addLinkTile(on: home, text: "Time", symbol: "clock.fill", pos: .adverb, destination: time)
+        addLinkTile(on: home, text: "Describing", symbol: "textformat.size", pos: .adjective, destination: describing)
+        addLinkTile(on: home, text: "Questions", symbol: "questionmark.circle", pos: .question, destination: questions)
+        addLinkTile(on: home, text: "Social", symbol: "bubble.left.and.bubble.right.fill", pos: .social, destination: social)
+        addLinkTile(on: home, text: "Body/Health", symbol: "cross.case.fill", pos: .noun, destination: body)
+        addLinkTile(on: home, text: "Animals", symbol: "pawprint.fill", pos: .noun, destination: animals)
+        addLinkTile(on: home, text: "Clothing", symbol: "tshirt.fill", pos: .noun, destination: clothing)
+        addLinkTile(on: home, text: "Weather", symbol: "cloud.sun.fill", pos: .noun, destination: weather)
+        addLinkTile(on: home, text: "Numbers/Colors", symbol: "paintpalette", pos: .adjective, destination: numbersColors)
+        addLinkTile(on: home, text: "Letters", symbol: "textformat.abc", pos: .noun, destination: letters)
 
         // Seed items
         ["mom", "dad", "family", "friend", "teacher", "me", "you", "nurse", "doctor"].forEach {
-            addSpeakTile(on: people, text: $0, symbol: "person.fill", colorHex: "#C7B1FF")
+            addSpeakTile(on: people, text: $0, symbol: "person.fill", pos: .noun)
         }
         ["go", "come", "stop", "look", "see", "want", "like", "play", "read", "write", "open", "close", "make", "get", "put", "give", "take", "help"].forEach {
-            addSpeakTile(on: actions, text: $0, symbol: "figure.walk.motion", colorHex: "#9AD0F5")
+            addSpeakTile(on: actions, text: $0, symbol: "figure.walk.motion", pos: .verb)
         }
         ["happy", "sad", "mad", "tired", "excited", "scared", "sick", "hurt", "bored", "calm"].forEach {
-            addSpeakTile(on: feelings, text: $0, symbol: "face.smiling", colorHex: "#FFD6E0")
+            addSpeakTile(on: feelings, text: $0, symbol: "face.smiling", pos: .adjective)
         }
         ["bathroom", "drink", "eat", "break", "more", "finished", "help", "pain"].forEach {
-            addSpeakTile(on: needs, text: $0, symbol: "exclamationmark.bubble", colorHex: "#F9D65C")
+            addSpeakTile(on: needs, text: $0, symbol: "exclamationmark.bubble", pos: .social)
         }
         ["home", "school", "outside", "bathroom", "kitchen", "bedroom", "park", "store", "bus"].forEach {
-            addSpeakTile(on: places, text: $0, symbol: "house.fill", colorHex: "#AEDFF7")
+            addSpeakTile(on: places, text: $0, symbol: "house.fill", pos: .noun)
         }
 
         // Food subpages
@@ -217,26 +242,26 @@ enum SeedingService {
         let snacks = getOrCreatePage(name: "Snacks", parent: food)
         let drinks = getOrCreatePage(name: "Drinks", parent: food)
 
-        addLinkTile(on: food, text: "Fruit", symbol: "applelogo", colorHex: "#FFCC99", destination: fruit)
-        addLinkTile(on: food, text: "Vegetables", symbol: "leaf.fill", colorHex: "#B5E48C", destination: vegetables)
-        addLinkTile(on: food, text: "Proteins", symbol: "fork.knife.circle", colorHex: "#FFE28A", destination: proteins)
-        addLinkTile(on: food, text: "Snacks", symbol: "takeoutbag.and.cup.and.straw.fill", colorHex: "#FFD6E0", destination: snacks)
-        addLinkTile(on: food, text: "Drinks", symbol: "cup.and.saucer.fill", colorHex: "#99CCFF", destination: drinks)
+        addLinkTile(on: food, text: "Fruit", symbol: "applelogo", pos: .noun, destination: fruit)
+        addLinkTile(on: food, text: "Vegetables", symbol: "leaf.fill", pos: .noun, destination: vegetables)
+        addLinkTile(on: food, text: "Proteins", symbol: "fork.knife.circle", pos: .noun, destination: proteins)
+        addLinkTile(on: food, text: "Snacks", symbol: "takeoutbag.and.cup.and.straw.fill", pos: .noun, destination: snacks)
+        addLinkTile(on: food, text: "Drinks", symbol: "cup.and.saucer.fill", pos: .noun, destination: drinks)
 
         ["apple", "banana", "orange", "grapes"].forEach {
-            addSpeakTile(on: fruit, text: $0, symbol: "leaf.fill", colorHex: "#FFCC99")
+            addSpeakTile(on: fruit, text: $0, symbol: "leaf.fill", pos: .noun)
         }
         ["carrot", "corn", "peas"].forEach {
-            addSpeakTile(on: vegetables, text: $0, symbol: "leaf.fill", colorHex: "#B5E48C")
+            addSpeakTile(on: vegetables, text: $0, symbol: "leaf.fill", pos: .noun)
         }
         ["chicken", "egg", "beans"].forEach {
-            addSpeakTile(on: proteins, text: $0, symbol: "fork.knife.circle", colorHex: "#FFE28A")
+            addSpeakTile(on: proteins, text: $0, symbol: "fork.knife.circle", pos: .noun)
         }
         ["cracker", "cookie"].forEach {
-            addSpeakTile(on: snacks, text: $0, symbol: "takeoutbag.and.cup.and.straw.fill", colorHex: "#FFD6E0")
+            addSpeakTile(on: snacks, text: $0, symbol: "takeoutbag.and.cup.and.straw.fill", pos: .noun)
         }
         ["water", "juice", "milk"].forEach {
-            addSpeakTile(on: drinks, text: $0, symbol: "cup.and.saucer.fill", colorHex: "#99CCFF")
+            addSpeakTile(on: drinks, text: $0, symbol: "cup.and.saucer.fill", pos: .noun)
         }
 
         try? modelContext.save()
@@ -248,4 +273,3 @@ enum SeedingService {
         return all?.first(where: { $0.isRoot }) ?? all?.first
     }
 }
-

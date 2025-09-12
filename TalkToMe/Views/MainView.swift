@@ -28,11 +28,16 @@ struct MainView: View {
     @AppStorage("language") private var languageSetting: String = "en-US"
     @AppStorage("editLocked") private var editLocked: Bool = true
     @AppStorage("userPreferredName") private var userPreferredName: String = ""
+    @AppStorage("selectionBehavior") private var selectionBehaviorRaw: String = SelectionBehavior.both.rawValue
 
     // Visibility toggles
     @AppStorage("showSentenceBar") private var showSentenceBar: Bool = true
     @AppStorage("showQuickPhrases") private var showQuickPhrases: Bool = true
     @AppStorage("showRecents") private var showRecents: Bool = true
+
+    private var selectionBehavior: SelectionBehavior {
+        SelectionBehavior(rawValue: selectionBehaviorRaw) ?? .both
+    }
 
     var body: some View {
         NavigationStack {
@@ -260,14 +265,14 @@ struct MainView: View {
 
                 if showQuickPhrases && !quickPhrases.isEmpty {
                     QuickPhrasesRow(phrases: quickPhrases.map { $0.text }) { phrase in
-                        insertIntoMessage(phrase)
+                        performSelection(phrase)
                     }
                     .containerStyle()
                 }
 
                 if showRecents && !recents.isEmpty {
                     RecentsRow(items: recents) { text in
-                        insertIntoMessage(text)
+                        performSelection(text)
                     }
                     .containerStyle()
                 }
@@ -292,6 +297,23 @@ struct MainView: View {
         }
     }
 
+    private func performSelection(_ text: String) {
+        let phrase = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !phrase.isEmpty else { return }
+
+        switch selectionBehavior {
+        case .speak:
+            speaker.speak(phrase)
+
+        case .addToMessage:
+            insertIntoMessage(phrase)
+
+        case .both:
+            insertIntoMessage(phrase)
+            speaker.speak(phrase)
+        }
+    }
+
     private func insertIntoMessage(_ text: String) {
         speaker.text = speaker.text.isEmpty ? text : speaker.text + " " + text
     }
@@ -306,3 +328,4 @@ struct MainView: View {
         .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }
+

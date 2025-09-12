@@ -34,6 +34,8 @@ struct ExportBundle: Codable {
         var languageCode: String?
         // image embedded as base64 (PNG)
         var imageBase64: String?
+        // New: POS raw value
+        var partOfSpeechRaw: String?
     }
 
     struct ExportFavorite: Codable {
@@ -44,7 +46,7 @@ struct ExportBundle: Codable {
     var pages: [ExportPage]
     var tiles: [ExportTile]
     var favorites: [ExportFavorite]
-    var version: Int = 1
+    var version: Int = 2
 }
 
 enum ExportService {
@@ -73,6 +75,7 @@ enum ExportService {
         var size: Double?
         var languageCode: String?
         var imageURL: URL?
+        var partOfSpeechRaw: String?
     }
 
     private struct FavoriteSnapshot {
@@ -113,7 +116,8 @@ enum ExportService {
                     pageID: t.page?.id,
                     size: t.size,
                     languageCode: t.languageCode,
-                    imageURL: t.imageURL
+                    imageURL: t.imageURL,
+                    partOfSpeechRaw: t.partOfSpeechRaw
                 )
             }
         }
@@ -153,7 +157,8 @@ enum ExportService {
                     pageID: ts.pageID,
                     size: ts.size,
                     languageCode: ts.languageCode,
-                    imageBase64: imageBase64
+                    imageBase64: imageBase64,
+                    partOfSpeechRaw: ts.partOfSpeechRaw
                 )
             }
 
@@ -217,7 +222,8 @@ enum ExportService {
                     page: nil,            // resolve later
                     imageRelativePath: relative,
                     size: et.size,
-                    languageCode: et.languageCode
+                    languageCode: et.languageCode,
+                    partOfSpeechRaw: et.partOfSpeechRaw
                 )
                 modelContext.insert(tile)
                 tileMap[et.id] = tile
@@ -243,4 +249,3 @@ enum ExportService {
         }
     }
 }
-
