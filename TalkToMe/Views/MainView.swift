@@ -10,11 +10,28 @@ import SwiftData
 import AVFoundation
 import Observation
 
+private enum GridPreset: String, CaseIterable, Identifiable {
+    case compact
+    case cozy
+    case comfortable
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .compact: return String(localized: "Compact")
+        case .cozy: return String(localized: "Cozy")
+        case .comfortable: return String(localized: "Comfortable")
+        }
+    }
+}
+
 struct MainView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(Speaker.self) private var speaker
     @State private var showSettings: Bool = false
     @State private var showPagesManager: Bool = false
+    @State private var showHelp: Bool = false
     @State private var searchText: String = ""
     @State private var selectedFavorite: Favorite?
 
@@ -30,13 +47,25 @@ struct MainView: View {
     @AppStorage("userPreferredName") private var userPreferredName: String = ""
     @AppStorage("selectionBehavior") private var selectionBehaviorRaw: String = SelectionBehavior.both.rawValue
 
-    // Visibility toggles
+    // Visibility toggles (default ON to surface key controls)
     @AppStorage("showSentenceBar") private var showSentenceBar: Bool = true
     @AppStorage("showQuickPhrases") private var showQuickPhrases: Bool = true
     @AppStorage("showRecents") private var showRecents: Bool = true
 
+    // Grid density preset persisted for TileGridView to consume
+    @AppStorage("gridPreset") private var gridPresetRaw: String = GridPreset.cozy.rawValue
+
+    // Backup reminder
+    @AppStorage("lastExportAt") private var lastExportAt: Double = 0 // timeIntervalSince1970
+    @State private var showBackupReminder: Bool = false
+    private let backupReminderDays: Double = 14 // remind every 2 weeks
+
     private var selectionBehavior: SelectionBehavior {
         SelectionBehavior(rawValue: selectionBehaviorRaw) ?? .both
+    }
+
+    private var gridPreset: GridPreset {
+        GridPreset(rawValue: gridPresetRaw) ?? .cozy
     }
 
     var body: some View {
@@ -52,8 +81,38 @@ struct MainView: View {
             .navigationTitle(String(localized: "Let's Talk"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    HStack {
+                        Button(action: { showSettings.toggle() }) {
+                            Image(systemName: "line.horizontal.3")
+                        }
+                        .accessibilityLabel(Text(String(localized: "Open Settings")))
+
+                        Button(action: { showHelp.toggle() }) {
+                            Image(systemName: "questionmark.circle")
+                        }
+                        .accessibilityLabel(Text(String(localized: "Open Help")))
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
+                        // Grid density preset menu
+                        Menu {
+                            Picker(String(localized: "Grid Density"), selection: Binding(
+                                get: { gridPreset },
+                                set: { newValue in
+                                    gridPresetRaw = newValue.rawValue
+                                }
+                            )) {
+                                ForEach(GridPreset.allCases) { preset in
+                                    Text(preset.label).tag(preset)
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "square.grid.3x3.fill")
+                        }
+                        .accessibilityLabel(Text(String(localized: "Grid Density")))
+
                         Button {
                             showPagesManager.toggle()
                         } label: {
@@ -66,15 +125,10 @@ struct MainView: View {
                             .disabled(editLocked)
                     }
                 }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { showSettings.toggle() }) {
-                        Image(systemName: "line.horizontal.3")
-                    }
-                    .accessibilityLabel(Text(String(localized: "Open Settings")))
-                }
             }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showPagesManager) { PagesManagerView(rootPage: rootPage()) }
+            .sheet(isPresented: $showHelp) { HelpView() }
             .task {
                 // Pick a sensible default voice for the current language if one isn't set
                 if UserDefaults.standard.string(forKey: "identifier")?.isEmpty ?? true {
@@ -112,6 +166,21 @@ struct MainView: View {
                 await MainActor.run {
                     speaker.speak(greeting)
                 }
+
+                // Backup reminder check
+                let now = Date().timeIntervalSince1970
+                if lastExportAt <= 0 || (now - lastExportAt) > (backupReminderDays * 24 * 60 * 60) {
+                    showBackupReminder = true
+                }
+            }
+            .alert(String(localized: "Backup Reminder"),
+                   isPresented: $showBackupReminder) {
+                Button(String(localized: "Later"), role: .cancel) { }
+                Button(String(localized: "Export Now")) {
+                    showSettings = true
+                }
+            } message: {
+                Text(String(localized: "It’s been a while since your last backup. Export your board to iCloud Drive or Files to keep it safe."))
             }
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text(String(localized: "Search tiles and pages")))
             .searchSuggestions {
@@ -259,7 +328,7 @@ struct MainView: View {
         if let _ = currentPage {
             VStack(spacing: 12) {
                 if showSentenceBar {
-                    MessageView(favorites: favorites)
+                    SentenceBarView()
                         .containerStyle()
                 }
 
@@ -328,4 +397,3 @@ struct MainView: View {
         .modelContainer(for: [Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self], inMemory: true)
         .environment(Speaker())
 }
-

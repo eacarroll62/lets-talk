@@ -52,3 +52,18 @@ enum SelectionBehavior: String, CaseIterable, Identifiable {
     }
 }
 
+// New: Scanning mode
+enum ScanningMode: String, CaseIterable, Identifiable {
+    case step
+    case auto
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .step: return String(localized: "Step")
+        case .auto: return String(localized: "Auto")
+        }
+    }
+}
+

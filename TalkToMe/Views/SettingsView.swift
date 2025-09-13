@@ -39,6 +39,14 @@ struct SettingsView: View {
     @AppStorage("largeTouchTargets") private var largeTouchTargets: Bool = false
     @AppStorage("autoRelockOnBackground") private var autoRelockOnBackground: Bool = true
 
+    // New: Scanning and dwell preferences
+    @AppStorage("scanningEnabled") private var scanningEnabled: Bool = false
+    @AppStorage("scanningMode") private var scanningModeRaw: String = ScanningMode.step.rawValue
+    @AppStorage("scanInterval") private var scanInterval: Double = 1.2 // seconds
+    @AppStorage("auditoryPreviewOnFocus") private var auditoryPreviewOnFocus: Bool = false
+    @AppStorage("dwellEnabled") private var dwellEnabled: Bool = false
+    @AppStorage("dwellTime") private var dwellTime: Double = 0.9 // seconds
+
     // View visibility toggles
     @AppStorage("showNavTiles") private var showNavTiles: Bool = true
     @AppStorage("showAddTileButton") private var showAddTileButton: Bool = true
@@ -136,6 +144,13 @@ struct SettingsView: View {
         Binding(
             get: { SelectionBehavior(rawValue: selectionBehaviorRaw) ?? .both },
             set: { selectionBehaviorRaw = $0.rawValue }
+        )
+    }
+
+    private var scanningMode: Binding<ScanningMode> {
+        Binding(
+            get: { ScanningMode(rawValue: scanningModeRaw) ?? .step },
+            set: { scanningModeRaw = $0.rawValue }
         )
     }
 
@@ -316,7 +331,6 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                         .accessibilityIdentifier("SelectionBehaviorPicker")
 
-                        // Hint explaining modes
                         Text(String(localized: "Speak: tap speaks immediately. Add: tap builds the sentence. Both: adds to the sentence and speaks."))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
@@ -326,6 +340,36 @@ struct SettingsView: View {
 
                         Toggle(String(localized: "Auto‑Relock on Background"), isOn: $autoRelockOnBackground)
                             .accessibilityHint(Text(String(localized: "Lock editing when the app goes to background")))
+
+                        // New: Scanning
+                        Toggle(String(localized: "Enable Scanning"), isOn: $scanningEnabled)
+                        Picker(String(localized: "Scanning Mode"), selection: scanningMode) {
+                            ForEach(ScanningMode.allCases) { mode in
+                                Text(mode.displayName).tag(mode)
+                            }
+                        }
+                        .disabled(!scanningEnabled)
+                        HStack {
+                            Text(String(localized: "Scan Speed"))
+                            Slider(value: $scanInterval, in: 0.5...3.0, step: 0.1)
+                            Text(String(format: "%.1fs", scanInterval))
+                                .font(.caption.monospacedDigit())
+                        }
+                        .disabled(!scanningEnabled)
+                        Toggle(String(localized: "Auditory Preview on Focus"), isOn: $auditoryPreviewOnFocus)
+                            .disabled(!scanningEnabled)
+                            .accessibilityHint(Text(String(localized: "Speaks a brief preview when an item is focused")))
+
+                        // New: Dwell
+                        Toggle(String(localized: "Dwell to Select"), isOn: $dwellEnabled)
+                        HStack {
+                            Text(String(localized: "Dwell Time"))
+                            Slider(value: $dwellTime, in: 0.5...2.5, step: 0.1)
+                            Text(String(format: "%.1fs", dwellTime))
+                                .font(.caption.monospacedDigit())
+                        }
+                        .disabled(!dwellEnabled)
+
                     } label: {
                         Label(String(localized: "Interaction"), systemImage: "hand.tap")
                     }
@@ -576,7 +620,6 @@ struct SettingsView: View {
                     identifier = best
                 }
             }
-            // Automatically apply scheme colors to POS-tagged tiles when the scheme changes.
             .onChange(of: aacColorSchemeRaw) { _, _ in
                 Task { @MainActor in
                     let scheme = AACColorScheme(rawValue: aacColorSchemeRaw) ?? .fitzgerald
@@ -621,11 +664,8 @@ struct SettingsView: View {
 
     @MainActor
     private func refreshVoices() {
-        // Filter voices for the selected language
         let voices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language == language }
         availableVoices = voices
-
-        // Ensure current identifier is valid; otherwise select a sensible default
         if !voices.contains(where: { $0.identifier == identifier }) {
             if let best = VoicePicker.bestVoiceIdentifier(for: language) {
                 identifier = best
@@ -642,13 +682,9 @@ struct SettingsView: View {
         guard !editLocked else { return }
         let trimmed = newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-
-        // Prevent duplicates (case-insensitive)
         guard !quickPhrases.contains(where: { $0.text.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
             return
         }
-
-        // Append to end
         let nextOrder = (quickPhrases.map { $0.order }.max() ?? -1) + 1
         let qp = QuickPhrase(text: trimmed, order: nextOrder)
         modelContext.insert(qp)
@@ -663,7 +699,6 @@ struct SettingsView: View {
     private func canAddNewQuickPhrase() -> Bool {
         let trimmed = newQuickPhrase.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
-        // Disallow duplicates (case-insensitive)
         return !quickPhrases.contains { $0.text.caseInsensitiveCompare(trimmed) == .orderedSame }
     }
 
@@ -881,7 +916,6 @@ struct SettingsView: View {
         let favs = favorites.sorted(by: { $0.order < $1.order }).map { FavoriteDTO(text: $0.text, order: $0.order) }
         let qps = quickPhrases.sorted(by: { $0.order < $1.order }).map { QuickPhraseDTO(id: $0.id, text: $0.text, order: $0.order) }
 
-        // Fetch recents sorted by timestamp desc (cap not necessary for export)
         let recentsFetch = FetchDescriptor<Recent>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
         let recentsAll = (try? modelContext.fetch(recentsFetch)) ?? []
         let recentsDTO = recentsAll.map { RecentDTO(id: $0.id, text: $0.text, timestamp: $0.timestamp, count: $0.count) }
@@ -936,17 +970,14 @@ struct SettingsView: View {
                     try wipeAllContent()
                 }
 
-                // Restore images first, return a map of oldRelative -> newRelative
                 let imageMap = restoreImages(pkg.images)
 
-                // Rebuild pages recursively, preserving order; if merging, append after current max order
                 let currentMaxOrder = (pages.map { $0.order }.max() ?? -1)
                 var baseOrderOffset = max(0, currentMaxOrder + 1)
                 for node in pkg.pages.sorted(by: { $0.order < $1.order }) {
                     let _ = importPageNode(node, parent: nil, orderOffset: &baseOrderOffset, imageMap: imageMap)
                 }
 
-                // Favorites: merge by text uniqueness
                 let existingFavs = (try? modelContext.fetch(FetchDescriptor<Favorite>())) ?? []
                 var favOrderStart = (existingFavs.map { $0.order }.max() ?? -1) + 1
                 for f in pkg.favorites.sorted(by: { $0.order < $1.order }) {
@@ -957,7 +988,6 @@ struct SettingsView: View {
                     favOrderStart += 1
                 }
 
-                // Quick Phrases: merge by text
                 let existingQPs = (try? modelContext.fetch(FetchDescriptor<QuickPhrase>())) ?? []
                 var qpOrderStart = (existingQPs.map { $0.order }.max() ?? -1) + 1
                 for q in pkg.quickPhrases.sorted(by: { $0.order < $1.order }) {
@@ -968,7 +998,6 @@ struct SettingsView: View {
                     qpOrderStart += 1
                 }
 
-                // Recents: merge by text (sum counts, keep latest timestamp)
                 let existingRecents = (try? modelContext.fetch(FetchDescriptor<Recent>())) ?? []
                 for r in pkg.recents {
                     if let match = existingRecents.first(where: { $0.text == r.text }) {
@@ -996,12 +1025,10 @@ struct SettingsView: View {
     }
 
     private func wipeAllContent() throws {
-        // Delete tile images folder
-        TileImagesStorage.delete(relativePath: nil) // noop, but keep for symmetry
+        TileImagesStorage.delete(relativePath: nil)
         let dir = TileImagesStorage.imagesDirectory
         try? FileManager.default.removeItem(at: dir)
 
-        // Wipe SwiftData entities
         try deleteAll(Favorite.self)
         try deleteAll(Recent.self)
         try deleteAll(QuickPhrase.self)
@@ -1029,13 +1056,11 @@ struct SettingsView: View {
 
     @discardableResult
     private func importPageNode(_ node: PageNode, parent: Page?, orderOffset: inout Int, imageMap: [String: String]) -> Page {
-        // Create page with appended order if merging
         let page = Page(id: node.id, name: node.name, order: orderOffset, isRoot: parent == nil ? node.isRoot : false)
         page.parent = parent
         modelContext.insert(page)
         orderOffset += 1
 
-        // Tiles
         var order = 0
         for t in node.tiles.sorted(by: { $0.order < $1.order }) {
             let newRel = t.imageRelativePath.flatMap { imageMap[$0] }
@@ -1059,12 +1084,8 @@ struct SettingsView: View {
             order += 1
         }
 
-        // Children
         for child in node.children.sorted(by: { $0.order < $1.order }) {
-            let childPage = importPageNode(child, parent: page, orderOffset: &orderOffset, imageMap: imageMap)
-            // Link tile if a link tile existed originally is not guaranteed; users create link tiles manually.
-            // We keep hierarchy; link tiles can be recreated by user if needed.
-            _ = childPage
+            _ = importPageNode(child, parent: page, orderOffset: &orderOffset, imageMap: imageMap)
         }
 
         return page
@@ -1087,7 +1108,6 @@ struct SettingsView: View {
                 }
             }
         } else {
-            // Fallback: if no biometrics/passcode available, just toggle (you may want a custom passcode UI)
             editLocked = false
         }
     }

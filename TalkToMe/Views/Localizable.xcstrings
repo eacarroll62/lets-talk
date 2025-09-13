@@ -52,6 +52,39 @@
     "%lld selected" : {
 
     },
+    "• If dictation is used and speech stops after recording, wait a moment or try speaking again—audio will resume automatically." : {
+
+    },
+    "• If speech is quiet, check your device volume and the app’s volume setting in Settings." : {
+
+    },
+    "• If you can’t edit, check Edit Lock or whether Guided Access is active." : {
+
+    },
+    "• Quick Phrases and Recents help you speak faster. Tap any item to insert and speak (based on your selection behavior)." : {
+
+    },
+    "• The sentence bar shows what you plan to say. Use Speak to play it aloud and Clear to reset." : {
+
+    },
+    "• Use the grid density control in the toolbar to choose Compact, Cozy, or Comfortable layouts." : {
+
+    },
+    "1) Open Let’s Talk." : {
+
+    },
+    "1) Open Settings > Accessibility > Guided Access." : {
+
+    },
+    "2) Triple‑click the Side (or Home) button." : {
+
+    },
+    "2) Turn on Guided Access and set a Passcode (or enable Face ID/Touch ID)." : {
+
+    },
+    "3) Tap Start. Optionally tap Options to restrict volume buttons, motion, keyboards, etc." : {
+
+    },
     "AAC Color Scheme" : {
 
     },
@@ -489,7 +522,13 @@
         }
       }
     },
+    "Auditory Preview on Focus" : {
+
+    },
     "Authentication failed. You can try again or finish and keep editing locked." : {
+
+    },
+    "Auto" : {
 
     },
     "Auto‑Relock on Background" : {
@@ -575,6 +614,9 @@
         }
       }
     },
+    "Backspace" : {
+
+    },
     "Backup" : {
       "localizations" : {
         "de" : {
@@ -616,6 +658,12 @@
       }
     },
     "Backup and Restore" : {
+
+    },
+    "Backup Reminder" : {
+
+    },
+    "Backups & iCloud Drive" : {
 
     },
     "Both" : {
@@ -757,6 +805,9 @@
         }
       }
     },
+    "Choose a language and voice in Settings. You can adjust speaking rate, pitch, and volume for comfort." : {
+
+    },
     "Choose File" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -841,7 +892,13 @@
     "Choose Merge to add content to your current board, or Replace to overwrite it." : {
 
     },
+    "Clear" : {
+
+    },
     "Clear Message Box" : {
+
+    },
+    "Clear Message?" : {
 
     },
     "Close" : {
@@ -974,7 +1031,22 @@
     "Columns: %lld" : {
 
     },
+    "Combine Guided Access with the app’s Edit Lock to prevent changes to pages and tiles." : {
+
+    },
+    "Comfortable" : {
+
+    },
+    "Compact" : {
+
+    },
     "Conjunction" : {
+
+    },
+    "Copy" : {
+
+    },
+    "Cozy" : {
 
     },
     "Create a new tile" : {
@@ -1266,6 +1338,9 @@
     "Development" : {
 
     },
+    "Dictate" : {
+
+    },
     "Dictation Mode" : {
       "localizations" : {
         "de" : {
@@ -1506,6 +1581,12 @@
         }
       }
     },
+    "Dwell Time" : {
+
+    },
+    "Dwell to Select" : {
+
+    },
     "Edit" : {
       "localizations" : {
         "de" : {
@@ -1545,6 +1626,9 @@
           }
         }
       }
+    },
+    "Edit Lock" : {
+
     },
     "Edit Tile" : {
       "localizations" : {
@@ -1681,6 +1765,9 @@
     "Empty" : {
 
     },
+    "Enable" : {
+
+    },
     "Enable Prediction" : {
       "localizations" : {
         "de" : {
@@ -1721,6 +1808,9 @@
         }
       }
     },
+    "Enable Scanning" : {
+
+    },
     "Enable to drag and reorder quick phrases" : {
       "localizations" : {
         "de" : {
@@ -1760,6 +1850,9 @@
           }
         }
       }
+    },
+    "End" : {
+
     },
     "English" : {
       "localizations" : {
@@ -1927,6 +2020,9 @@
         }
       }
     },
+    "Export Now" : {
+
+    },
     "Export your board to a file you control. Import to merge content into your current board." : {
 
     },
@@ -2033,7 +2129,19 @@
     "Getting Started" : {
 
     },
+    "Go to Settings to Export or Import. After a successful export, the app won’t remind you for a while." : {
+
+    },
+    "Grid Density" : {
+
+    },
+    "Guided Access keeps the iPhone or iPad focused on this app and can disable hardware buttons or touch areas." : {
+
+    },
     "Guided Edit Lock" : {
+
+    },
+    "Help" : {
 
     },
     "Help & Support" : {
@@ -2115,6 +2223,9 @@
           }
         }
       }
+    },
+    "If no voice is set, the app will try to pick a good default for your language." : {
+
     },
     "If provided, the app may greet you by name." : {
 
@@ -2309,6 +2420,12 @@
     "Interjection" : {
 
     },
+    "It’s been a while since your last backup. Export your board to iCloud Drive or Files to keep it safe." : {
+
+    },
+    "Kiosk Mode (Guided Access)" : {
+
+    },
     "Language" : {
       "localizations" : {
         "de" : {
@@ -2393,6 +2510,9 @@
 
     },
     "Large Touch Targets" : {
+
+    },
+    "Later" : {
 
     },
     "Layout" : {
@@ -2689,6 +2809,12 @@
 
     },
     "Message" : {
+
+    },
+    "Message empty" : {
+
+    },
+    "Message: %@" : {
 
     },
     "Mix With Others" : {
@@ -3146,6 +3272,9 @@
     "Noun" : {
 
     },
+    "Open Help" : {
+
+    },
     "Open Help & Support" : {
       "localizations" : {
         "de" : {
@@ -3313,6 +3442,9 @@
       }
     },
     "Part of Speech (Fitzgerald)" : {
+
+    },
+    "Pause" : {
 
     },
     "Pitch" : {
@@ -3539,6 +3671,12 @@
         }
       }
     },
+    "Regularly export your board to Files or iCloud Drive so you can restore it later or move to a new device." : {
+
+    },
+    "Remove the last word" : {
+
+    },
     "Rename" : {
 
     },
@@ -3634,6 +3772,9 @@
     "Reseed Starter Pages?" : {
 
     },
+    "Resume" : {
+
+    },
     "Root" : {
 
     },
@@ -3721,6 +3862,12 @@
 
     },
     "Save Names" : {
+
+    },
+    "Scan Speed" : {
+
+    },
+    "Scanning Mode" : {
 
     },
     "Search Favorites" : {
@@ -4132,6 +4279,9 @@
         }
       }
     },
+    "Share" : {
+
+    },
     "Share Last Export" : {
       "localizations" : {
         "de" : {
@@ -4267,6 +4417,12 @@
     "Speaker State: %@" : {
 
     },
+    "Speaks a brief preview when an item is focused" : {
+
+    },
+    "Speaks the current message" : {
+
+    },
     "Speaks the tile text using the selected language" : {
       "localizations" : {
         "de" : {
@@ -4350,6 +4506,9 @@
     "Speech Settings" : {
 
     },
+    "Start" : {
+
+    },
     "Start Dictation" : {
       "localizations" : {
         "de" : {
@@ -4389,6 +4548,9 @@
           }
         }
       }
+    },
+    "Step" : {
+
     },
     "Stop Dictation" : {
       "localizations" : {
@@ -4559,6 +4721,9 @@
         }
       }
     },
+    "Tap tiles to build your message…" : {
+
+    },
     "Tap tiles to speak" : {
 
     },
@@ -4654,6 +4819,9 @@
     "This will delete all pages, tiles, favorites, recents, quick phrases, and images, then rebuild the starter board." : {
 
     },
+    "This will erase the current message." : {
+
+    },
     "Tile" : {
       "localizations" : {
         "de" : {
@@ -4693,6 +4861,9 @@
           }
         }
       }
+    },
+    "Tile deleted" : {
+
     },
     "Tile Size" : {
       "localizations" : {
@@ -4777,7 +4948,22 @@
     "Tiles: %lld" : {
 
     },
+    "Tip" : {
+
+    },
+    "Tip: Keep multiple dated backups so you can roll back if needed." : {
+
+    },
     "Toggle view options from the toolbar menu" : {
+
+    },
+    "Triple‑click the Side (or Home) button again and authenticate to end." : {
+
+    },
+    "Troubleshooting" : {
+
+    },
+    "Undo" : {
 
     },
     "Unlock editing" : {
@@ -4937,10 +5123,22 @@
         }
       }
     },
+    "Voice & Language" : {
+
+    },
     "Volume" : {
 
     },
+    "Welcome" : {
+
+    },
     "Welcome to Let's Talk" : {
+
+    },
+    "When Edit Lock is on, you can’t reorder or change content. This is helpful for daily use or kiosk mode." : {
+
+    },
+    "You can toggle Edit Lock in Settings. Consider protecting unlock with Face ID/Touch ID if available." : {
 
     }
   },
