@@ -1,6 +1,6 @@
 //
 //  HeaderView.swift
-//  TalkToMe
+//  LetsTalk
 //
 //  Created by Eric Carroll on 7/8/23.
 //

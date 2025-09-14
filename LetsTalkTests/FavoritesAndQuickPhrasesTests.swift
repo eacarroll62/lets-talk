@@ -2,7 +2,7 @@ import Testing
 import SwiftData
 import Foundation
 
-@testable import TalkToMe
+@testable import LetsTalk
 
 @Suite("Favorites Uniqueness & QuickPhrase Ordering")
 struct FavoritesAndQuickPhrasesTests {

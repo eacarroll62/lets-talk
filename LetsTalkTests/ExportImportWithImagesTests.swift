@@ -3,7 +3,7 @@ import SwiftData
 import Foundation
 import UIKit
 
-@testable import TalkToMe
+@testable import LetsTalk
 
 @Suite("Export/Import With Images")
 struct ExportImportWithImagesTests {

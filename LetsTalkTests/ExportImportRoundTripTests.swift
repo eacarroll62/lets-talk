@@ -1,6 +1,6 @@
 //
 //  Test.swift
-//  TalkToMe
+//  LetsTalk
 //
 //  Created by Eric Carroll on 9/7/25.
 //
@@ -9,7 +9,7 @@ import Testing
 import SwiftData
 import Foundation
 
-@testable import TalkToMe // Replace with your app’s module name
+@testable import LetsTalk // Replace with your app’s module name
 
 @Suite("Export/Import Round-Trip")
 struct ExportImportRoundTripTests {

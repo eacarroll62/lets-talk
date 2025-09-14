@@ -1,6 +1,6 @@
 //
 //  FavoritesList.swift
-//  TalkToMe
+//  LetsTalk
 //
 //  Created by Eric Carroll on 12/15/24.
 //

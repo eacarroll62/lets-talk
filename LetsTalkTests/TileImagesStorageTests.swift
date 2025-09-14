@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 
-@testable import TalkToMe
+@testable import LetsTalk
 
 @Suite("TileImagesStorage")
 struct TileImagesStorageTests {
