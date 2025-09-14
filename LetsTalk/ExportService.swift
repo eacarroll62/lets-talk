@@ -52,7 +52,7 @@ struct ExportBundle: Codable {
 enum ExportService {
 
     // Snapshot types to safely move work off the main actor
-    private struct PageSnapshot {
+    fileprivate struct PageSnapshot: Sendable {
         var id: UUID
         var name: String
         var order: Int
@@ -62,7 +62,7 @@ enum ExportService {
         var tileIDs: [UUID]
     }
 
-    private struct TileSnapshot {
+    fileprivate struct TileSnapshot: Sendable {
         var id: UUID
         var text: String
         var symbolName: String?
@@ -78,7 +78,7 @@ enum ExportService {
         var partOfSpeechRaw: String?
     }
 
-    private struct FavoriteSnapshot {
+    fileprivate struct FavoriteSnapshot: Sendable {
         var text: String
         var order: Int
     }
@@ -88,43 +88,9 @@ enum ExportService {
                            tiles: [Tile],
                            favorites: [Favorite]) async throws -> URL {
         // Take a snapshot of data we need on the main actor (SwiftData models should be used on main)
-        let pageSnapshots: [PageSnapshot] = await MainActor.run {
-            pages.map { p in
-                PageSnapshot(
-                    id: p.id,
-                    name: p.name,
-                    order: p.order,
-                    isRoot: p.isRoot,
-                    parentID: p.parent?.id,
-                    childrenIDs: p.children.map { $0.id },
-                    tileIDs: p.tiles.map { $0.id }
-                )
-            }
-        }
-
-        let tileSnapshots: [TileSnapshot] = await MainActor.run {
-            tiles.map { t in
-                TileSnapshot(
-                    id: t.id,
-                    text: t.text,
-                    symbolName: t.symbolName,
-                    colorHex: t.colorHex,
-                    order: t.order,
-                    isCore: t.isCore,
-                    pronunciationOverride: t.pronunciationOverride,
-                    destinationPageID: t.destinationPage?.id,
-                    pageID: t.page?.id,
-                    size: t.size,
-                    languageCode: t.languageCode,
-                    imageURL: t.imageURL,
-                    partOfSpeechRaw: t.partOfSpeechRaw
-                )
-            }
-        }
-
-        let favoriteSnapshots: [FavoriteSnapshot] = await MainActor.run {
-            favorites.map { FavoriteSnapshot(text: $0.text, order: $0.order) }
-        }
+        let pageSnapshots: [PageSnapshot] = await makePageSnapshots(from: pages)
+        let tileSnapshots: [TileSnapshot] = await makeTileSnapshots(from: tiles)
+        let favoriteSnapshots: [FavoriteSnapshot] = await makeFavoriteSnapshots(from: favorites)
 
         // Perform file IO and JSON encoding off the main actor
         let url: URL = try await Task.detached(priority: .userInitiated) { () throws -> URL in
@@ -140,7 +106,7 @@ enum ExportService {
                 )
             }
 
-            let exportTiles: [ExportBundle.ExportTile] = try tileSnapshots.map { ts in
+            let exportTiles: [ExportBundle.ExportTile] = tileSnapshots.map { ts in
                 let imageBase64: String? = {
                     guard let url = ts.imageURL, let data = try? Data(contentsOf: url) else { return nil }
                     return data.base64EncodedString()
@@ -184,68 +150,113 @@ enum ExportService {
             return try JSONDecoder().decode(ExportBundle.self, from: data)
         }.value
 
-        // Mutate SwiftData models on the main actor
-        try await MainActor.run {
-            // Build lookup maps
-            var pageMap: [UUID: Page] = [:]
-            var tileMap: [UUID: Tile] = [:]
-
-            // Create pages
-            for ep in bundle.pages {
-                let page = Page(name: ep.name, order: ep.order, isRoot: ep.isRoot)
-                page.id = ep.id
-                modelContext.insert(page)
-                pageMap[ep.id] = page
-            }
-            // Resolve parent/children relationships
-            for ep in bundle.pages {
-                guard let page = pageMap[ep.id] else { continue }
-                if let pid = ep.parentID { page.parent = pageMap[pid] }
-                page.children = ep.childrenIDs.compactMap { pageMap[$0] }
-            }
-
-            // Create tiles (save images first)
-            for et in bundle.tiles {
-                var relative: String? = nil
-                if let b64 = et.imageBase64, let data = Data(base64Encoded: b64) {
-                    relative = TileImagesStorage.savePNG(data)
-                }
-                let tile = Tile(
-                    id: et.id,
-                    text: et.text,
-                    symbolName: et.symbolName,
-                    colorHex: et.colorHex,
-                    order: et.order,
-                    isCore: et.isCore,
-                    pronunciationOverride: et.pronunciationOverride,
-                    destinationPage: nil, // resolve later
-                    page: nil,            // resolve later
-                    imageRelativePath: relative,
-                    size: et.size,
-                    languageCode: et.languageCode,
-                    partOfSpeechRaw: et.partOfSpeechRaw
-                )
-                modelContext.insert(tile)
-                tileMap[et.id] = tile
-            }
-
-            // Resolve tile relationships
-            for et in bundle.tiles {
-                guard let tile = tileMap[et.id] else { continue }
-                if let destID = et.destinationPageID { tile.destinationPage = pageMap[destID] }
-                if let pageID = et.pageID {
-                    tile.page = pageMap[pageID]
-                    pageMap[pageID]?.tiles.append(tile)
-                }
-            }
-
-            // Favorites
-            for ef in bundle.favorites {
-                let fav = Favorite(text: ef.text, order: ef.order)
-                modelContext.insert(fav)
-            }
-
-            try modelContext.save()
-        }
+        // Apply to SwiftData models on the main actor without capturing modelContext in a @Sendable closure
+        try await apply(bundle: bundle, into: modelContext)
     }
+
+    @MainActor
+    private static func apply(bundle: ExportBundle, into modelContext: ModelContext) throws {
+        // Build lookup maps
+        var pageMap: [UUID: Page] = [:]
+        var tileMap: [UUID: Tile] = [:]
+
+        // Create pages
+        for ep in bundle.pages {
+            let page = Page(name: ep.name, order: ep.order, isRoot: ep.isRoot)
+            page.id = ep.id
+            modelContext.insert(page)
+            pageMap[ep.id] = page
+        }
+        // Resolve parent/children relationships
+        for ep in bundle.pages {
+            guard let page = pageMap[ep.id] else { continue }
+            if let pid = ep.parentID { page.parent = pageMap[pid] }
+            page.children = ep.childrenIDs.compactMap { pageMap[$0] }
+        }
+
+        // Create tiles (save images first)
+        for et in bundle.tiles {
+            var relative: String? = nil
+            if let b64 = et.imageBase64, let data = Data(base64Encoded: b64) {
+                relative = TileImagesStorage.savePNG(data)
+            }
+            let tile = Tile(
+                id: et.id,
+                text: et.text,
+                symbolName: et.symbolName,
+                colorHex: et.colorHex,
+                order: et.order,
+                isCore: et.isCore,
+                pronunciationOverride: et.pronunciationOverride,
+                destinationPage: nil, // resolve later
+                page: nil,            // resolve later
+                imageRelativePath: relative,
+                size: et.size,
+                languageCode: et.languageCode,
+                partOfSpeechRaw: et.partOfSpeechRaw
+            )
+            modelContext.insert(tile)
+            tileMap[et.id] = tile
+        }
+
+        // Resolve tile relationships
+        for et in bundle.tiles {
+            guard let tile = tileMap[et.id] else { continue }
+            if let destID = et.destinationPageID { tile.destinationPage = pageMap[destID] }
+            if let pageID = et.pageID {
+                tile.page = pageMap[pageID]
+                pageMap[pageID]?.tiles.append(tile)
+            }
+        }
+
+        // Favorites
+        for ef in bundle.favorites {
+            let fav = Favorite(text: ef.text, order: ef.order)
+            modelContext.insert(fav)
+        }
+
+        try modelContext.save()
+    }
+}
+
+// MARK: - Main-actor snapshot helpers
+@MainActor
+private func makePageSnapshots(from pages: [Page]) -> [ExportService.PageSnapshot] {
+    pages.map { p in
+        ExportService.PageSnapshot(
+            id: p.id,
+            name: p.name,
+            order: p.order,
+            isRoot: p.isRoot,
+            parentID: p.parent?.id,
+            childrenIDs: p.children.map { $0.id },
+            tileIDs: p.tiles.map { $0.id }
+        )
+    }
+}
+
+@MainActor
+private func makeTileSnapshots(from tiles: [Tile]) -> [ExportService.TileSnapshot] {
+    tiles.map { t in
+        ExportService.TileSnapshot(
+            id: t.id,
+            text: t.text,
+            symbolName: t.symbolName,
+            colorHex: t.colorHex,
+            order: t.order,
+            isCore: t.isCore,
+            pronunciationOverride: t.pronunciationOverride,
+            destinationPageID: t.destinationPage?.id,
+            pageID: t.page?.id,
+            size: t.size,
+            languageCode: t.languageCode,
+            imageURL: t.imageURL,
+            partOfSpeechRaw: t.partOfSpeechRaw
+        )
+    }
+}
+
+@MainActor
+private func makeFavoriteSnapshots(from favorites: [Favorite]) -> [ExportService.FavoriteSnapshot] {
+    favorites.map { ExportService.FavoriteSnapshot(text: $0.text, order: $0.order) }
 }

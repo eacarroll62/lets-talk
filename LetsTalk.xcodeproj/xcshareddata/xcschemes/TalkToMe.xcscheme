@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A82D05EB2A522BBA004DC550"
-               BuildableName = "TalkToMe.app"
-               BlueprintName = "TalkToMe"
-               ReferencedContainer = "container:TalkToMe.xcodeproj">
+               BuildableName = "LetsTalk.app"
+               BlueprintName = "LetsTalk"
+               ReferencedContainer = "container:LetsTalk.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,9 +36,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A8380EE02E6D572400E9E58B"
-               BuildableName = "TalkToMeTests.xctest"
-               BlueprintName = "TalkToMeTests"
-               ReferencedContainer = "container:TalkToMe.xcodeproj">
+               BuildableName = "LetsTalkTests.xctest"
+               BlueprintName = "LetsTalkTests"
+               ReferencedContainer = "container:LetsTalk.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -58,9 +58,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A82D05EB2A522BBA004DC550"
-            BuildableName = "TalkToMe.app"
-            BlueprintName = "TalkToMe"
-            ReferencedContainer = "container:TalkToMe.xcodeproj">
+            BuildableName = "LetsTalk.app"
+            BlueprintName = "LetsTalk"
+            ReferencedContainer = "container:LetsTalk.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
@@ -82,9 +82,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A82D05EB2A522BBA004DC550"
-            BuildableName = "TalkToMe.app"
-            BlueprintName = "TalkToMe"
-            ReferencedContainer = "container:TalkToMe.xcodeproj">
+            BuildableName = "LetsTalk.app"
+            BlueprintName = "LetsTalk"
+            ReferencedContainer = "container:LetsTalk.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

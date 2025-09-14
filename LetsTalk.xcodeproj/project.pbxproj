@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A82D05F02A522BBB004DC550 /* TalkToMeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05EF2A522BBB004DC550 /* TalkToMeApp.swift */; };
+		A82D05F02A522BBB004DC550 /* LetsTalkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05EF2A522BBB004DC550 /* LetsTalkApp.swift */; };
 		A82D05F22A522BBB004DC550 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05F12A522BBB004DC550 /* MainView.swift */; };
 		A82D05F42A522BBC004DC550 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A82D05F32A522BBC004DC550 /* Assets.xcassets */; };
 		A82D05F72A522BBC004DC550 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A82D05F62A522BBC004DC550 /* Preview Assets.xcassets */; };
@@ -55,12 +55,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A82D05EC2A522BBB004DC550 /* TalkToMe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TalkToMe.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A82D05EF2A522BBB004DC550 /* TalkToMeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkToMeApp.swift; sourceTree = "<group>"; };
+		A82D05EC2A522BBB004DC550 /* LetsTalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LetsTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A82D05EF2A522BBB004DC550 /* LetsTalkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetsTalkApp.swift; sourceTree = "<group>"; };
 		A82D05F12A522BBB004DC550 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		A82D05F32A522BBC004DC550 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A82D05F62A522BBC004DC550 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		A82D05FA2A522BBC004DC550 /* TalkToMe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkToMe.entitlements; sourceTree = "<group>"; };
+		A82D05FA2A522BBC004DC550 /* LetsTalk.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LetsTalk.entitlements; sourceTree = "<group>"; };
 		A82D05FB2A522BBC004DC550 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A82D06032A522E9D004DC550 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A8380E9B2E69623200E9E58B /* TileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileEditorView.swift; sourceTree = "<group>"; };
@@ -80,7 +80,7 @@
 		A8380EBB2E6CC0DC00E9E58B /* SpeechTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechTranscriber.swift; sourceTree = "<group>"; };
 		A8380EBD2E6D013700E9E58B /* VoiceSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSelection.swift; sourceTree = "<group>"; };
 		A8380EBF2E6D038B00E9E58B /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		A8380EE12E6D572400E9E58B /* TalkToMeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TalkToMeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A8380EE12E6D572400E9E58B /* LetsTalkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LetsTalkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A84B3F212A59A9470013A493 /* HeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
 		A84B3F252A59F3A30013A493 /* MessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageView.swift; sourceTree = "<group>"; };
 		A84DDEBF2E7138D300C386F9 /* FitzgeraldKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitzgeraldKey.swift; sourceTree = "<group>"; };
@@ -97,7 +97,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A8380EE22E6D572400E9E58B /* TalkToMeTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = TalkToMeTests; sourceTree = "<group>"; };
+		A8380EE22E6D572400E9E58B /* LetsTalkTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LetsTalkTests; sourceTree = "<group>"; };
 		A8E222072D0FDA22002710C0 /* Extras */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Extras; sourceTree = "<group>"; };
 		A8E222082D0FDA3B002710C0 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -123,8 +123,8 @@
 		A82D05E32A522BBA004DC550 = {
 			isa = PBXGroup;
 			children = (
-				A82D05EE2A522BBB004DC550 /* TalkToMe */,
-				A8380EE22E6D572400E9E58B /* TalkToMeTests */,
+				A82D05EE2A522BBB004DC550 /* LetsTalk */,
+				A8380EE22E6D572400E9E58B /* LetsTalkTests */,
 				A82D05ED2A522BBB004DC550 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -132,18 +132,18 @@
 		A82D05ED2A522BBB004DC550 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A82D05EC2A522BBB004DC550 /* TalkToMe.app */,
-				A8380EE12E6D572400E9E58B /* TalkToMeTests.xctest */,
+				A82D05EC2A522BBB004DC550 /* LetsTalk.app */,
+				A8380EE12E6D572400E9E58B /* LetsTalkTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A82D05EE2A522BBB004DC550 /* TalkToMe */ = {
+		A82D05EE2A522BBB004DC550 /* LetsTalk */ = {
 			isa = PBXGroup;
 			children = (
-				A82D05FA2A522BBC004DC550 /* TalkToMe.entitlements */,
+				A82D05FA2A522BBC004DC550 /* LetsTalk.entitlements */,
 				A82D05FB2A522BBC004DC550 /* Info.plist */,
-				A82D05EF2A522BBB004DC550 /* TalkToMeApp.swift */,
+				A82D05EF2A522BBB004DC550 /* LetsTalkApp.swift */,
 				A84B3F292A59F6FD0013A493 /* Views */,
 				A8E222082D0FDA3B002710C0 /* Models */,
 				A8E222072D0FDA22002710C0 /* Extras */,
@@ -166,7 +166,7 @@
 				A84DDEC12E72F4CB00C386F9 /* AACColorMigration.swift */,
 				A871E2232E762F2F00F0825D /* .gitignore */,
 			);
-			path = TalkToMe;
+			path = LetsTalk;
 			sourceTree = "<group>";
 		};
 		A82D05F52A522BBC004DC550 /* Preview Content */ = {
@@ -203,9 +203,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A82D05EB2A522BBA004DC550 /* TalkToMe */ = {
+		A82D05EB2A522BBA004DC550 /* LetsTalk */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A82D05FE2A522BBC004DC550 /* Build configuration list for PBXNativeTarget "TalkToMe" */;
+			buildConfigurationList = A82D05FE2A522BBC004DC550 /* Build configuration list for PBXNativeTarget "LetsTalk" */;
 			buildPhases = (
 				A82D05E82A522BBA004DC550 /* Sources */,
 				A82D05E92A522BBA004DC550 /* Frameworks */,
@@ -219,14 +219,14 @@
 				A8E222072D0FDA22002710C0 /* Extras */,
 				A8E222082D0FDA3B002710C0 /* Models */,
 			);
-			name = TalkToMe;
+			name = LetsTalk;
 			productName = TalkToMe;
-			productReference = A82D05EC2A522BBB004DC550 /* TalkToMe.app */;
+			productReference = A82D05EC2A522BBB004DC550 /* LetsTalk.app */;
 			productType = "com.apple.product-type.application";
 		};
-		A8380EE02E6D572400E9E58B /* TalkToMeTests */ = {
+		A8380EE02E6D572400E9E58B /* LetsTalkTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A8380EE72E6D572400E9E58B /* Build configuration list for PBXNativeTarget "TalkToMeTests" */;
+			buildConfigurationList = A8380EE72E6D572400E9E58B /* Build configuration list for PBXNativeTarget "LetsTalkTests" */;
 			buildPhases = (
 				A8380EDD2E6D572400E9E58B /* Sources */,
 				A8380EDE2E6D572400E9E58B /* Frameworks */,
@@ -238,13 +238,13 @@
 				A8380EE62E6D572400E9E58B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				A8380EE22E6D572400E9E58B /* TalkToMeTests */,
+				A8380EE22E6D572400E9E58B /* LetsTalkTests */,
 			);
-			name = TalkToMeTests;
+			name = LetsTalkTests;
 			packageProductDependencies = (
 			);
 			productName = TalkToMeTests;
-			productReference = A8380EE12E6D572400E9E58B /* TalkToMeTests.xctest */;
+			productReference = A8380EE12E6D572400E9E58B /* LetsTalkTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -266,7 +266,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A82D05E72A522BBA004DC550 /* Build configuration list for PBXProject "TalkToMe" */;
+			buildConfigurationList = A82D05E72A522BBA004DC550 /* Build configuration list for PBXProject "LetsTalk" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -284,8 +284,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A82D05EB2A522BBA004DC550 /* TalkToMe */,
-				A8380EE02E6D572400E9E58B /* TalkToMeTests */,
+				A82D05EB2A522BBA004DC550 /* LetsTalk */,
+				A8380EE02E6D572400E9E58B /* LetsTalkTests */,
 			);
 		};
 /* End PBXProject section */
@@ -335,7 +335,7 @@
 				A8DAEC6E2E6918D90082027E /* TileGridView.swift in Sources */,
 				A8380EBC2E6CC0DC00E9E58B /* SpeechTranscriber.swift in Sources */,
 				A8380EAA2E696DD800E9E58B /* QuickPhrase.swift in Sources */,
-				A82D05F02A522BBB004DC550 /* TalkToMeApp.swift in Sources */,
+				A82D05F02A522BBB004DC550 /* LetsTalkApp.swift in Sources */,
 				A84B3F262A59F3A30013A493 /* MessageView.swift in Sources */,
 				A8380EA22E69638900E9E58B /* PagesManagerView.swift in Sources */,
 				A88CBA0F2D0D0B93002A9798 /* SpeakerTestView.swift in Sources */,
@@ -362,7 +362,7 @@
 /* Begin PBXTargetDependency section */
 		A8380EE62E6D572400E9E58B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = A82D05EB2A522BBA004DC550 /* TalkToMe */;
+			target = A82D05EB2A522BBA004DC550 /* LetsTalk */;
 			targetProxy = A8380EE52E6D572400E9E58B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -509,7 +509,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TalkToMe/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = TalkToMe;
+				INFOPLIST_KEY_CFBundleDisplayName = LetsTalk;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take photos for your tiles.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID is used to unlock editing mode.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone for speech input.";
@@ -525,7 +526,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.UsefulApps.TalkToMe;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MainStreetAppBrewery.LetsTalk;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -547,7 +548,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TalkToMe/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = TalkToMe;
+				INFOPLIST_KEY_CFBundleDisplayName = LetsTalk;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take photos for your tiles.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID is used to unlock editing mode.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone for speech input.";
@@ -563,7 +565,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.UsefulApps.TalkToMe;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MainStreetAppBrewery.LetsTalk;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -618,7 +620,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A82D05E72A522BBA004DC550 /* Build configuration list for PBXProject "TalkToMe" */ = {
+		A82D05E72A522BBA004DC550 /* Build configuration list for PBXProject "LetsTalk" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A82D05FC2A522BBC004DC550 /* Debug */,
@@ -627,7 +629,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A82D05FE2A522BBC004DC550 /* Build configuration list for PBXNativeTarget "TalkToMe" */ = {
+		A82D05FE2A522BBC004DC550 /* Build configuration list for PBXNativeTarget "LetsTalk" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A82D05FF2A522BBC004DC550 /* Debug */,
@@ -636,7 +638,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A8380EE72E6D572400E9E58B /* Build configuration list for PBXNativeTarget "TalkToMeTests" */ = {
+		A8380EE72E6D572400E9E58B /* Build configuration list for PBXNativeTarget "LetsTalkTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A8380EE82E6D572400E9E58B /* Debug */,

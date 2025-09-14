@@ -126,6 +126,9 @@ struct MainView: View {
                     }
                 }
             }
+            .onAppear() {
+                speaker.prewarm()
+            }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showPagesManager) { PagesManagerView(rootPage: rootPage()) }
             .sheet(isPresented: $showHelp) { HelpView() }

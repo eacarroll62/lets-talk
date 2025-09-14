@@ -1,10 +1,3 @@
-//
-//  Speaker.swift
-//  TalkToMe
-//
-//  Created by Eric Carroll on 7/2/23.
-//
-
 import AVFoundation
 import SwiftUI
 import Observation
@@ -36,13 +29,16 @@ import os
     }
 
     // Synthesizer
-    let synthesizer: AVSpeechSynthesizer = .init()
+    private(set) var synthesizer: AVSpeechSynthesizer = .init()
 
     // Queue of pending utterances (FIFO)
     private var pendingUtterances: [AVSpeechUtterance] = []
 
     // Track when we initiated a programmatic cancel due to replaceCurrent
     private var replaceInProgress: Bool = false
+
+    // If true, do not dequeue next item when the current one finishes (used by stopAfterCurrent)
+    private var suppressAutoDequeueOnce: Bool = false
 
     // Preferences: Use a true stored property instead of @AppStorage to avoid @Observable conflict
     private var audioMixingRaw: String = UserDefaults.standard.string(forKey: "audioMixingOption") ?? AudioMixingOption.duckOthers.rawValue
@@ -64,6 +60,11 @@ import os
     // Logger
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "LetsTalk", category: "Speaker")
 
+    // Prewarm guard
+    private var hasPrewarmed: Bool = false
+
+    // MARK: - Lifecycle
+
     override init() {
         super.init()
         synthesizer.delegate = self
@@ -72,9 +73,12 @@ import os
         audioMixingRaw = UserDefaults.standard.string(forKey: "audioMixingOption") ?? AudioMixingOption.duckOthers.rawValue
         routeToSpeaker = UserDefaults.standard.bool(forKey: "routeToSpeaker")
         configureAudioSession()
+        installAudioSessionObservers()
     }
 
+    @MainActor
     deinit {
+        removeAudioSessionObservers()
         synthesizer.delegate = nil
     }
 
@@ -113,6 +117,8 @@ import os
         return NSClassFromString("XCTestCase") != nil
     }
 
+    // MARK: - Audio Session
+
     private func configureAudioSession() {
         #if os(iOS) || os(tvOS) || os(visionOS)
         // Skip configuring audio in test environments to avoid concurrency and CoreAudio server warnings
@@ -145,6 +151,86 @@ import os
         }
         #endif
     }
+
+    /// Public helper to re-assert our preferred audio session (useful after dictation/interruption).
+    func ensureAudioSessionActive() {
+        configureAudioSession()
+    }
+
+    private func installAudioSessionObservers() {
+        #if os(iOS) || os(tvOS) || os(visionOS)
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] note in
+            Task { @MainActor in self?.handleInterruption(note) }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.mediaServicesWereResetNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] note in
+            Task { @MainActor in self?.handleMediaServicesReset(note) }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] note in
+            Task { @MainActor in self?.handleRouteChange(note) }
+        }
+        #endif
+    }
+
+    private func removeAudioSessionObservers() {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func handleInterruption(_ notification: Notification) {
+        guard let info = notification.userInfo,
+              let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
+
+        switch type {
+        case .began:
+            // Update state to reflect interruption
+            if state == .isSpeaking {
+                state = .isPaused
+            } else {
+                state = .isCancelled
+            }
+            debugLog("AudioSession interruption began")
+        case .ended:
+            // Re-assert session; do not auto-resume to avoid surprising users
+            configureAudioSession()
+            debugLog("AudioSession interruption ended")
+        @unknown default:
+            break
+        }
+    }
+
+    private func handleMediaServicesReset(_ notification: Notification) {
+        // Recreate synthesizer and re-apply delegate and session
+        synthesizer.delegate = nil
+        synthesizer = AVSpeechSynthesizer()
+        synthesizer.delegate = self
+        pendingUtterances.removeAll()
+        state = .isCancelled
+        progress = 0.0
+        configureAudioSession()
+        debugLog("Media services were reset; synthesizer recreated")
+    }
+
+    private func handleRouteChange(_ notification: Notification) {
+        // Re-apply routing/mixing preferences after route changes
+        configureAudioSession()
+        debugLog("Audio route changed")
+    }
+
+    // MARK: - Voices
 
     private func startSpeechSynthesizerIfNeeded() {
         if !synthesizer.isSpeaking {
@@ -228,16 +314,20 @@ import os
 
     // MARK: - Public API
 
+    var isSpeaking: Bool { state == .isSpeaking }
+    var isBusy: Bool { state == .isSpeaking || state == .isPaused || !pendingUtterances.isEmpty }
+
     func speak(_ speechString: String, policy: InterruptionPolicy = .replaceCurrent) {
         speak(speechString, languageOverride: nil, policy: policy)
     }
 
     func speak(_ speechString: String, languageOverride: String?, policy: InterruptionPolicy = .replaceCurrent) {
-        let utterance = buildUtterance(for: speechString, languageOverride: languageOverride)
+        let utterance = buildUtterance(for: speechString, languageOverride: languageOverride, volumeOverride: nil)
 
         switch policy {
         case .replaceCurrent:
             pendingUtterances.removeAll()
+            suppressAutoDequeueOnce = false
             if synthesizer.isSpeaking {
                 replaceInProgress = true
                 synthesizer.stopSpeaking(at: .immediate)
@@ -259,6 +349,19 @@ import os
         }
     }
 
+    /// Queue multiple words/phrases in order.
+    func speak(words: [String], languageOverride: String? = nil, policy: InterruptionPolicy = .alwaysEnqueue) {
+        for (idx, word) in words.enumerated() {
+            let p: InterruptionPolicy = (idx == 0) ? policy : .alwaysEnqueue
+            speak(word, languageOverride: languageOverride, policy: p)
+        }
+    }
+
+    /// Enqueue text to play after current utterance(s).
+    func enqueue(_ text: String, languageOverride: String? = nil) {
+        speak(text, languageOverride: languageOverride, policy: .alwaysEnqueue)
+    }
+
     func speakImmediately(_ speechString: String, languageOverride: String? = nil) {
         speak(speechString, languageOverride: languageOverride, policy: .replaceCurrent)
     }
@@ -273,7 +376,16 @@ import os
 
     func stop() {
         pendingUtterances.removeAll()
+        suppressAutoDequeueOnce = false
         synthesizer.stopSpeaking(at: .immediate)
+        progress = 0.0
+    }
+
+    /// Let the current utterance finish, but prevent dequeuing the next one.
+    func stopAfterCurrent() {
+        // Clear any queued items and suppress auto-dequeue when the current finishes.
+        pendingUtterances.removeAll()
+        suppressAutoDequeueOnce = true
     }
 
     func continueSpeaking() {
@@ -292,9 +404,42 @@ import os
         configureAudioSession()
     }
 
+    // MARK: - AAC conveniences
+
+    /// Prewarm the speech synthesizer to reduce first-utterance latency.
+    /// Safe to call multiple times; only runs once per process.
+    func prewarm() {
+        guard !hasPrewarmed else { return }
+        hasPrewarmed = true
+
+        // Avoid in tests
+        if isRunningInTests { return }
+
+        // Use a very short, near-silent utterance.
+        let warmup = buildUtterance(for: "•", languageOverride: nil, volumeOverride: 0.0)
+        warmup.preUtteranceDelay = 0.0
+        warmup.postUtteranceDelay = 0.0
+
+        // Do not interrupt current speech; enqueue only if idle.
+        if !synthesizer.isSpeaking && pendingUtterances.isEmpty {
+            enqueueAndStart(warmup)
+        }
+    }
+
+    /// Speak a reduced-volume preview (useful for focus/hover/long-press).
+    /// Uses enqueueIfSpeaking so it doesn’t interrupt active speech.
+    func preview(_ text: String, languageOverride: String? = nil, volume: Float = 0.33) {
+        let u = buildUtterance(for: text, languageOverride: languageOverride, volumeOverride: max(0.0, min(volume, 1.0)))
+        if synthesizer.isSpeaking || !pendingUtterances.isEmpty {
+            pendingUtterances.append(u)
+        } else {
+            enqueueAndStart(u)
+        }
+    }
+
     // MARK: - Utterance building
 
-    private func buildUtterance(for speechString: String, languageOverride: String? = nil) -> AVSpeechUtterance {
+    private func buildUtterance(for speechString: String, languageOverride: String? = nil, volumeOverride: Float?) -> AVSpeechUtterance {
         startSpeechSynthesizerIfNeeded()
 
         let defaults = UserDefaults.standard
@@ -335,7 +480,12 @@ import os
 
         utterance.rate = Float(clampedRate)
         utterance.pitchMultiplier = max(0.5, min(Float(pitchDouble), 2.0))
-        utterance.volume = max(0.0, min(Float(volumeDouble), 1.0))
+        // Allow a one-off volume override (for previews/prewarm)
+        if let v = volumeOverride {
+            utterance.volume = max(0.0, min(v, 1.0))
+        } else {
+            utterance.volume = max(0.0, min(Float(volumeDouble), 1.0))
+        }
         utterance.preUtteranceDelay = 0.0
         utterance.postUtteranceDelay = 0.1
 
@@ -343,42 +493,54 @@ import os
     }
 
     private func enqueueAndStart(_ utterance: AVSpeechUtterance) {
+        progress = 0.0
         synthesizer.speak(utterance)
     }
 
     private func dequeueAndSpeakNext() {
         guard !pendingUtterances.isEmpty else { return }
         let next = pendingUtterances.removeFirst()
+        progress = 0.0
         synthesizer.speak(next)
     }
 }
 
-extension Speaker: AVSpeechSynthesizerDelegate {
+nonisolated(unsafe) extension Speaker: AVSpeechSynthesizerDelegate {
+    @MainActor
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         self.state = .isSpeaking
         progress = 0.0
         debugLog("didStart")
     }
 
+    @MainActor
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didPause utterance: AVSpeechUtterance) {
         self.state = .isPaused
         debugLog("didPause")
     }
 
+    @MainActor
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         self.state = .isFinished
         progress = 1.0
         debugLog("didFinish")
+        if suppressAutoDequeueOnce {
+            // Consume the suppression once, then return to normal behavior
+            suppressAutoDequeueOnce = false
+            return
+        }
         if !pendingUtterances.isEmpty {
             dequeueAndSpeakNext()
         }
     }
 
+    @MainActor
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didContinue utterance: AVSpeechUtterance) {
         self.state = .isContinued
         debugLog("didContinue")
     }
 
+    @MainActor
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         self.state = .isCancelled
         debugLog("didCancel")
@@ -391,6 +553,7 @@ extension Speaker: AVSpeechSynthesizerDelegate {
         }
     }
 
+    @MainActor
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                            willSpeakRangeOfSpeechString characterRange: NSRange,
                            utterance: AVSpeechUtterance) {

@@ -8,6 +8,8 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import NaturalLanguage
+import AudioToolbox
 
 struct TileGridView: View {
     @Environment(\.modelContext) private var modelContext
@@ -33,6 +35,9 @@ struct TileGridView: View {
     @AppStorage("dwellEnabled") private var dwellEnabled: Bool = false
     @AppStorage("dwellTime") private var dwellTime: Double = 0.9
 
+    // New: distinct preview volume (0.0 ... 1.0)
+    @AppStorage("previewVolume") private var previewVolume: Double = 0.33
+
     // View visibility toggles
     @AppStorage("showNavTiles") private var showNavTiles: Bool = true
     @AppStorage("showAddTileButton") private var showAddTileButton: Bool = true
@@ -54,6 +59,11 @@ struct TileGridView: View {
     @State private var focusedIndex: Int? = nil
     @State private var scanTimer: Timer? = nil
 
+    // Row/Column scanning state
+    @State private var isRowPhase: Bool = true
+    @State private var focusedRow: Int? = nil
+    @State private var activeRowRange: Range<Int>? = nil
+
     // Undo (simple) for tile delete
     @State private var recentlyDeletedTile: (tile: Tile, page: Page, index: Int, imagePath: String?)?
     @State private var showUndoBanner: Bool = false
@@ -63,6 +73,10 @@ struct TileGridView: View {
     }
     private var scanningMode: ScanningMode {
         ScanningMode(rawValue: scanningModeRaw) ?? .step
+    }
+    private var isRowColumnMode: Bool {
+        // Prefer enum if updated; otherwise honor raw string
+        return scanningModeRaw == "rowColumn" || scanningMode == .step && false // keep compiler aware of usage
     }
 
     // Precomputed roots to keep type-check simple
@@ -81,10 +95,11 @@ struct TileGridView: View {
                 let focusables = buildFocusableItems()
                 ForEach(focusables.indices, id: \.self) { idx in
                     let item = focusables[idx]
+                    let isFocusedVisually = isItemFocused(idx: idx, columns: columns.count, total: focusables.count)
                     focusableView(item: item,
                                   isEditing: isEditing,
                                   isSelecting: isSelecting,
-                                  isFocused: focusedIndex == idx)
+                                  isFocused: isFocusedVisually)
                         .onAppear {
                             // Initialize focus when scanning starts
                             startScanningIfNeeded()
@@ -122,7 +137,14 @@ struct TileGridView: View {
             VisibilityMenuButton()
 
             ToolbarItemGroup(placement: .bottomBar) {
-                if scanningEnabled && scanningMode == .step {
+                if scanningEnabled && (scanningMode == .step || isRowColumnMode) {
+                    Button {
+                        stepFocusBackward()
+                    } label: {
+                        Label(String(localized: "Previous"), systemImage: "arrow.left.circle")
+                    }
+                    .disabled(buildFocusableItems().isEmpty)
+
                     Button {
                         stepFocusForward()
                     } label: {
@@ -135,7 +157,13 @@ struct TileGridView: View {
                     } label: {
                         Label(String(localized: "Select"), systemImage: "checkmark.circle")
                     }
-                    .disabled(focusedIndex == nil)
+                    .disabled(!hasAnyFocus())
+
+                    Button {
+                        cancelScanning()
+                    } label: {
+                        Label(String(localized: "Cancel"), systemImage: "xmark.circle")
+                    }
 
                     Spacer()
                 }
@@ -189,6 +217,16 @@ struct TileGridView: View {
         .onDisappear {
             stopScanning()
         }
+        // Hardware key bindings
+        .background(
+            KeyCommandBridgeView(
+                isActive: true,
+                onNext: { stepFocusForward() },
+                onPrevious: { stepFocusBackward() },
+                onSelect: { activateFocused() },
+                onCancel: { cancelScanning() }
+            )
+        )
     }
 
     // MARK: - Focusables and views
@@ -211,6 +249,19 @@ struct TileGridView: View {
         }
         items += sortedTiles().map { .tile($0) }
         return items
+    }
+
+    private func isItemFocused(idx: Int, columns: Int, total: Int) -> Bool {
+        if scanningEnabled && isRowColumnMode {
+            if let range = activeRowRange, range.contains(idx) {
+                // In row phase we want the whole row highlighted; in column phase, single item is highlighted
+                return isRowPhase || (focusedIndex == idx)
+            }
+            // If no active row, only highlight the single focused index (initial condition)
+            return focusedIndex == idx
+        } else {
+            return focusedIndex == idx
+        }
     }
 
     @ViewBuilder
@@ -276,9 +327,10 @@ struct TileGridView: View {
                 dwellEnabled: dwellEnabled,
                 dwellTime: dwellTime,
                 onLongPressPreview: {
-                    // Long-press to preview speech without adding
                     let phrase = tile.pronunciationOverride?.isEmpty == false ? tile.pronunciationOverride! : tile.text
-                    speaker.speak(phrase, languageOverride: tile.languageCode, policy: .enqueueIfSpeaking)
+                    let code = resolvedLanguage(for: tile, text: phrase)
+                    // Softer preview using distinct volume
+                    speaker.preview(phrase, languageOverride: code, volume: Float(max(0.0, min(1.0, previewVolume))))
                 }
             )
             .if(!editLocked && !isSelecting) { view in
@@ -327,7 +379,9 @@ struct TileGridView: View {
             .onChange(of: isFocused) { _, focused in
                 if focused, scanningEnabled, auditoryPreviewOnFocus {
                     let phrase = tile.pronunciationOverride?.isEmpty == false ? tile.pronunciationOverride! : tile.text
-                    speaker.speak(phrase, languageOverride: tile.languageCode, policy: .enqueueIfSpeaking)
+                    let code = resolvedLanguage(for: tile, text: phrase)
+                    // Softer preview on focus
+                    speaker.preview(phrase, languageOverride: code, volume: Float(max(0.0, min(1.0, previewVolume))))
                 }
             }
         }
@@ -362,13 +416,23 @@ struct TileGridView: View {
     private func startScanningIfNeeded() {
         guard scanningEnabled else {
             focusedIndex = nil
+            focusedRow = nil
+            activeRowRange = nil
+            isRowPhase = true
             stopScanning()
             return
         }
         let count = buildFocusableItems().count
         guard count > 0 else { return }
-        if focusedIndex == nil {
-            focusedIndex = 0
+        if focusedIndex == nil && focusedRow == nil {
+            // Initialize to first item or first row depending on mode
+            if isRowColumnMode {
+                isRowPhase = true
+                focusedRow = 0
+                updateActiveRowRange()
+            } else {
+                focusedIndex = 0
+            }
         }
         stopScanning()
         if scanningMode == .auto {
@@ -383,30 +447,149 @@ struct TileGridView: View {
         scanTimer = nil
     }
 
+    private func hasAnyFocus() -> Bool {
+        return focusedIndex != nil || focusedRow != nil
+    }
+
+    private func cancelScanning() {
+        focusedIndex = nil
+        focusedRow = nil
+        activeRowRange = nil
+        isRowPhase = true
+        playEarconCancel()
+    }
+
+    private func updateActiveRowRange() {
+        let total = buildFocusableItems().count
+        let columns = gridColumns().count
+        guard columns > 0 else { activeRowRange = nil; return }
+        let row = max(0, focusedRow ?? 0)
+        let start = row * columns
+        let end = min(total, start + columns)
+        if start < end {
+            activeRowRange = start..<end
+        } else {
+            activeRowRange = nil
+        }
+    }
+
     private func stepFocusForward() {
         let total = buildFocusableItems().count
         guard total > 0 else {
-            focusedIndex = nil
+            cancelScanning()
             return
         }
-        let next = ((focusedIndex ?? -1) + 1) % total
-        focusedIndex = next
+        if isRowColumnMode {
+            let columns = gridColumns().count
+            guard columns > 0 else { return }
+            if isRowPhase {
+                // Advance row
+                let rowCount = Int(ceil(Double(total) / Double(columns)))
+                let nextRow = ((focusedRow ?? -1) + 1) % max(1, rowCount)
+                focusedRow = nextRow
+                updateActiveRowRange()
+            } else {
+                // Column phase within active row
+                guard let range = activeRowRange else { return }
+                if let idx = focusedIndex {
+                    let next = (idx + 1 <= range.upperBound - 1) ? idx + 1 : range.lowerBound
+                    focusedIndex = next
+                } else {
+                    focusedIndex = range.lowerBound
+                }
+            }
+        } else {
+            // Step mode: single index
+            let next = ((focusedIndex ?? -1) + 1) % total
+            focusedIndex = next
+        }
+        playEarconAdvance()
+    }
+
+    private func stepFocusBackward() {
+        let total = buildFocusableItems().count
+        guard total > 0 else {
+            cancelScanning()
+            return
+        }
+        if isRowColumnMode {
+            let columns = gridColumns().count
+            guard columns > 0 else { return }
+            if isRowPhase {
+                // Previous row
+                let rowCount = Int(ceil(Double(total) / Double(columns)))
+                let prevRow = ((focusedRow ?? rowCount) - 1 + rowCount) % max(1, rowCount)
+                focusedRow = prevRow
+                updateActiveRowRange()
+            } else {
+                // Column phase within active row
+                guard let range = activeRowRange else { return }
+                if let idx = focusedIndex {
+                    let prev = (idx - 1 >= range.lowerBound) ? idx - 1 : range.upperBound - 1
+                    focusedIndex = prev
+                } else {
+                    focusedIndex = range.upperBound - 1
+                }
+            }
+        } else {
+            // Step mode: single index
+            let prev = ((focusedIndex ?? total) - 1 + total) % total
+            focusedIndex = prev
+        }
+        playEarconAdvance()
     }
 
     private func activateFocused() {
-        guard scanningEnabled, let idx = focusedIndex else { return }
+        guard scanningEnabled else { return }
         let items = buildFocusableItems()
-        guard idx >= 0 && idx < items.count else { return }
-        switch items[idx] {
-        case .back: navigateBack()
-        case .home: navigateHome()
-        case .add:
-            if !editLocked {
-                haptic(.medium)
-                isPresentingEditor = true
+        if isRowColumnMode {
+            if isRowPhase {
+                // Enter column phase for the active row
+                isRowPhase = false
+                if let range = activeRowRange {
+                    focusedIndex = range.lowerBound
+                } else {
+                    // If range is nil, recompute and set to first
+                    updateActiveRowRange()
+                    if let range = activeRowRange {
+                        focusedIndex = range.lowerBound
+                    }
+                }
+                playEarconSelect()
+                return
             }
-        case .tile(let tile):
-            handleTap(tile)
+            // Column phase: activate the focused item
+            guard let idx = focusedIndex, idx >= 0, idx < items.count else { return }
+            playEarconSelect()
+            switch items[idx] {
+            case .back: navigateBack()
+            case .home: navigateHome()
+            case .add:
+                if !editLocked {
+                    haptic(.medium)
+                    isPresentingEditor = true
+                }
+            case .tile(let tile):
+                handleTap(tile)
+            }
+            // Return to row phase on next step
+            isRowPhase = true
+            focusedIndex = nil
+        } else {
+            // Step mode
+            guard let idx = focusedIndex, idx >= 0, idx < items.count else { return }
+            playEarconSelect()
+            switch items[idx] {
+            case .back: navigateBack()
+            case .home: navigateHome()
+            case .add:
+                if !editLocked {
+                    haptic(.medium)
+                    isPresentingEditor = true
+                }
+            case .tile(let tile):
+                handleTap(tile)
+            }
         }
     }
 
@@ -458,10 +641,11 @@ struct TileGridView: View {
         }
 
         let phrase = tile.pronunciationOverride?.isEmpty == false ? tile.pronunciationOverride! : tile.text
+        let code = resolvedLanguage(for: tile, text: phrase)
 
         switch selectionBehavior {
         case .speak:
-            speaker.speak(phrase, languageOverride: tile.languageCode, policy: .replaceCurrent)
+            speaker.speak(phrase, languageOverride: code, policy: .replaceCurrent)
             logRecent(text: tile.text)
 
         case .addToMessage:
@@ -469,9 +653,26 @@ struct TileGridView: View {
 
         case .both:
             addToMessage(phrase)
-            speaker.speak(phrase, languageOverride: tile.languageCode, policy: .replaceCurrent)
+            speaker.speak(phrase, languageOverride: code, policy: .replaceCurrent)
             logRecent(text: tile.text)
         }
+    }
+
+    // Auto-detect language if missing using NLLanguageRecognizer; persist on first use.
+    private func resolvedLanguage(for tile: Tile, text: String) -> String? {
+        if let code = tile.languageCode, !code.isEmpty { return code }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(trimmed)
+        if let lang = recognizer.dominantLanguage {
+            let bcp47 = lang.rawValue // e.g., "en", "es"
+            // Persist for future uses
+            tile.languageCode = bcp47
+            try? modelContext.save()
+            return bcp47
+        }
+        return nil
     }
 
     private func addToMessage(_ text: String) {
@@ -722,6 +923,20 @@ struct TileGridView: View {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(notification)
     }
+
+    // MARK: - Earcons
+
+    private func playEarconAdvance() {
+        AudioServicesPlaySystemSound(1104) // Tock
+    }
+
+    private func playEarconSelect() {
+        AudioServicesPlaySystemSound(1110) // KeyPressClick
+    }
+
+    private func playEarconCancel() {
+        AudioServicesPlaySystemSound(1053) // SMSReceived_Alert
+    }
 }
 
 // MARK: - Move Destination Picker (unchanged)
@@ -895,7 +1110,6 @@ private struct TileButton: View {
                             }
                         }
                         .onChanged { pressing in
-                            // SwiftUI 5: onChanged on LongPressGesture closure runs repeatedly; we gate by flag
                             if !isDwelling {
                                 isDwelling = true
                                 withAnimation(.linear(duration: dwellTime)) {
@@ -1012,5 +1226,114 @@ private struct TileButton: View {
             return Color(hex: hex, alpha: 0.2)
         }
         return Color.yellow.opacity(0.2)
+    }
+}
+
+// MARK: - Hardware key command bridge
+
+private struct KeyCommandBridgeView: UIViewControllerRepresentable {
+    var isActive: Bool
+    var onNext: () -> Void
+    var onPrevious: () -> Void
+    var onSelect: () -> Void
+    var onCancel: () -> Void
+
+    func makeUIViewController(context: Context) -> KeyCommandHostingController {
+        let vc = KeyCommandHostingController()
+        vc.onNext = onNext
+        vc.onPrevious = onPrevious
+        vc.onSelect = onSelect
+        vc.onCancel = onCancel
+        vc.isActive = isActive
+        return vc
+    }
+
+    func updateUIViewController(_ uiViewController: KeyCommandHostingController, context: Context) {
+        uiViewController.onNext = onNext
+        uiViewController.onPrevious = onPrevious
+        uiViewController.onSelect = onSelect
+        uiViewController.onCancel = onCancel
+        uiViewController.isActive = isActive
+        // Ensure it stays first responder to receive key events
+        if isActive, uiViewController.view.window != nil {
+            uiViewController.becomeFirstResponder()
+        }
+    }
+}
+
+private final class KeyCommandHostingController: UIViewController {
+    var isActive: Bool = true
+    var onNext: () -> Void = {}
+    var onPrevious: () -> Void = {}
+    var onSelect: () -> Void = {}
+    var onCancel: () -> Void = {}
+
+    override var canBecomeFirstResponder: Bool { true }
+
+    private lazy var nextCommand: UIKeyCommand = {
+        let cmd = UIKeyCommand(input: UIKeyCommand.inputRightArrow, modifierFlags: [], action: #selector(handleNext))
+        cmd.discoverabilityTitle = String(localized: "Next")
+        return cmd
+    }()
+
+    private lazy var previousCommand: UIKeyCommand = {
+        let cmd = UIKeyCommand(input: UIKeyCommand.inputLeftArrow, modifierFlags: [], action: #selector(handlePrevious))
+        cmd.discoverabilityTitle = String(localized: "Previous")
+        return cmd
+    }()
+
+    private lazy var selectSpaceCommand: UIKeyCommand = {
+        let cmd = UIKeyCommand(input: " ", modifierFlags: [], action: #selector(handleSelect))
+        cmd.discoverabilityTitle = String(localized: "Select")
+        return cmd
+    }()
+
+    private lazy var selectReturnCommand: UIKeyCommand = {
+        let cmd = UIKeyCommand(input: "\r", modifierFlags: [], action: #selector(handleSelect))
+        cmd.discoverabilityTitle = String(localized: "Select")
+        return cmd
+    }()
+
+    private lazy var selectEnterCommand: UIKeyCommand = {
+        // Some keyboards may send newline for Enter; handle it in addition to Return.
+        let cmd = UIKeyCommand(input: "\n", modifierFlags: [], action: #selector(handleSelect))
+        cmd.discoverabilityTitle = String(localized: "Select")
+        return cmd
+    }()
+
+    private lazy var cancelEscapeCommand: UIKeyCommand = {
+        let cmd = UIKeyCommand(input: UIKeyCommand.inputEscape, modifierFlags: [], action: #selector(handleCancel))
+        cmd.discoverabilityTitle = String(localized: "Cancel")
+        return cmd
+    }()
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        _ = becomeFirstResponder()
+    }
+
+    override var keyCommands: [UIKeyCommand]? {
+        guard isActive else { return [] }
+        return [nextCommand, previousCommand, selectSpaceCommand, selectReturnCommand, selectEnterCommand, cancelEscapeCommand]
+    }
+
+    @objc private func handleNext() {
+        guard isActive else { return }
+        onNext()
+    }
+
+    @objc private func handlePrevious() {
+        guard isActive else { return }
+        onPrevious()
+    }
+
+    @objc private func handleSelect() {
+        guard isActive else { return }
+        onSelect()
+    }
+
+    @objc private func handleCancel() {
+        guard isActive else { return }
+        onCancel()
     }
 }
