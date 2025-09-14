@@ -11,10 +11,13 @@ enum SeedingService {
         if pages.isEmpty {
             seedHome(modelContext: modelContext)
             seedCategories(modelContext: modelContext)
+            seedEmergencyTemplateIfNeeded(modelContext: modelContext)
             seedQuickPhrases(modelContext: modelContext)
         } else {
             // If Home exists but categories not linked, add them
             seedCategoriesIfNeeded(modelContext: modelContext, pages: pages)
+            // Ensure Emergency page exists (template only; linking is controlled by Settings)
+            seedEmergencyTemplateIfNeeded(modelContext: modelContext)
             // If no quick phrases, seed them
             seedQuickPhrasesIfNeeded(modelContext: modelContext, modelContextPages: pages)
         }
@@ -37,6 +40,7 @@ enum SeedingService {
         // Recreate starter content
         seedHome(modelContext: modelContext)
         seedCategories(modelContext: modelContext)
+        seedEmergencyTemplateIfNeeded(modelContext: modelContext)
         seedQuickPhrases(modelContext: modelContext)
 
         try? modelContext.save()
@@ -271,5 +275,37 @@ enum SeedingService {
         let descriptor = FetchDescriptor<Page>()
         let all = try? modelContext.fetch(descriptor)
         return all?.first(where: { $0.isRoot }) ?? all?.first
+    }
+
+    // MARK: - Emergency template
+
+    private static func seedEmergencyTemplateIfNeeded(modelContext: ModelContext) {
+        // Create an "Emergency" page if it doesn't exist; do not link it on Home here.
+        let descriptor = FetchDescriptor<Page>()
+        let pages = (try? modelContext.fetch(descriptor)) ?? []
+        if pages.first(where: { $0.name == "Emergency" }) != nil {
+            return
+        }
+
+        let order = ((pages.map { $0.order }.max() ?? -1) + 1)
+        let emergency = Page(name: "Emergency", order: order, isRoot: false)
+        modelContext.insert(emergency)
+
+        func addSpeakTile(_ text: String, symbol: String, pos: PartOfSpeech? = .social) {
+            let colorHex = pos.map { FitzgeraldKey.colorHex(for: $0) } ?? "#E63946"
+            let tile = Tile(text: text, symbolName: symbol, colorHex: colorHex, order: emergency.tiles.count, isCore: true, page: emergency, partOfSpeechRaw: pos?.rawValue)
+            modelContext.insert(tile)
+            emergency.tiles.append(tile)
+        }
+
+        addSpeakTile("Help!", symbol: "exclamationmark.triangle.fill", pos: .social)
+        addSpeakTile("Call 911", symbol: "phone.fill", pos: .question)
+        addSpeakTile("I am hurt", symbol: "cross.case.fill", pos: .noun)
+        addSpeakTile("I feel unsafe", symbol: "hand.raised.fill", pos: .social)
+        addSpeakTile("I can’t breathe", symbol: "lungs.fill", pos: .social)
+        addSpeakTile("I need medicine", symbol: "pills.fill", pos: .noun)
+        addSpeakTile("Contact my caregiver", symbol: "person.crop.circle.badge.questionmark", pos: .social)
+
+        try? modelContext.save()
     }
 }

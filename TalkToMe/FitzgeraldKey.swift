@@ -106,20 +106,3 @@ enum FitzgeraldKey {
         Color(hex: colorHex(for: pos, scheme: scheme), alpha: alpha)
     }
 }
-
-// Local convenience to decode hex into Color
-extension Color {
-    init(hex: String, alpha: Double = 1.0) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        if hexSanitized.hasPrefix("#") { hexSanitized.removeFirst() }
-        if hexSanitized.count == 6, let rgb = Int(hexSanitized, radix: 16) {
-            let r = Double((rgb >> 16) & 0xFF) / 255.0
-            let g = Double((rgb >> 8) & 0xFF) / 255.0
-            let b = Double(rgb & 0xFF) / 255.0
-            self = Color(red: r, green: g, blue: b, opacity: alpha)
-        } else {
-            // Fallback to the default palette color "#FFE066" (yellow-ish)
-            self = Color(red: 1.0, green: 224.0/255.0, blue: 102.0/255.0, opacity: alpha)
-        }
-    }
-}

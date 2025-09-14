@@ -64,6 +64,9 @@ struct SettingsView: View {
     // User info
     @AppStorage("userPreferredName") private var userPreferredName: String = ""
 
+    // Backup reminder timestamp (to reset the alert in MainView)
+    @AppStorage("lastExportAt") private var lastExportAt: Double = 0
+
     enum GridSizePreference: String, CaseIterable, Identifiable {
         case small, medium, large, extraLarge, custom
         var id: String { rawValue }
@@ -90,6 +93,10 @@ struct SettingsView: View {
     @State private var exportSummary: String?
     @State private var importSummary: String?
     @State private var importMode: ImportMode = .merge
+
+    // File exporter document
+    @State private var exportDocument: JSONDataDocument?
+    @State private var showFileExporter: Bool = false
 
     // Development
     @State private var showReseedConfirm: Bool = false
@@ -535,6 +542,24 @@ struct SettingsView: View {
                             importSummary = nil
                         }
                     }
+                    .fileExporter(
+                        isPresented: $showFileExporter,
+                        document: exportDocument,
+                        contentType: .json,
+                        defaultFilename: "Board-\(Int(Date().timeIntervalSince1970)).ltboard"
+                    ) { result in
+                        switch result {
+                        case .success(let url):
+                            exportURL = url
+                            lastExportAt = Date().timeIntervalSince1970
+                            if exportSummary == nil {
+                                let tileCount = pages.flatMap { $0.tiles }.count
+                                exportSummary = String(localized: "Exported \(pages.count) pages, \(tileCount) tiles, \(favorites.count) favorites, \(quickPhrases.count) quick phrases.")
+                            }
+                        case .failure(let error):
+                            lastExportError = error.localizedDescription
+                        }
+                    }
 
                     if let summary = exportSummary {
                         Text(summary)
@@ -859,6 +884,8 @@ struct SettingsView: View {
         var size: Double?
         var languageCode: String?
         var partOfSpeechRaw: String?
+        // New: preserve folder links
+        var destinationPageId: UUID?
     }
 
     private struct FavoriteDTO: Codable {
@@ -903,7 +930,8 @@ struct SettingsView: View {
                     imageRelativePath: t.imageRelativePath,
                     size: t.size,
                     languageCode: t.languageCode,
-                    partOfSpeechRaw: t.partOfSpeechRaw
+                    partOfSpeechRaw: t.partOfSpeechRaw,
+                    destinationPageId: t.destinationPage?.id
                 )
             }
             let kids = page.children.sorted(by: { $0.order < $1.order }).map(node(from:))
@@ -942,6 +970,12 @@ struct SettingsView: View {
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
                 let data = try encoder.encode(pkg)
+
+                // Present the system file exporter so the user can save to Files/iCloud Drive
+                exportDocument = JSONDataDocument(data: data)
+                showFileExporter = true
+
+                // Also create a temp URL for "Share Last Export" convenience
                 let url = FileManager.default.temporaryDirectory
                     .appendingPathComponent("Board-\(Int(Date().timeIntervalSince1970)).ltboard.json")
                 try data.write(to: url, options: .atomic)
@@ -972,10 +1006,21 @@ struct SettingsView: View {
 
                 let imageMap = restoreImages(pkg.images)
 
+                // Dictionaries to reconnect relationships by UUID
+                var pagesById: [UUID: Page] = [:]
+                var tilesById: [UUID: Tile] = [:]
+                var pendingLinks: [(tileId: UUID, destPageId: UUID)] = []
+
                 let currentMaxOrder = (pages.map { $0.order }.max() ?? -1)
                 var baseOrderOffset = max(0, currentMaxOrder + 1)
                 for node in pkg.pages.sorted(by: { $0.order < $1.order }) {
-                    let _ = importPageNode(node, parent: nil, orderOffset: &baseOrderOffset, imageMap: imageMap)
+                    _ = importPageNode(node,
+                                       parent: nil,
+                                       orderOffset: &baseOrderOffset,
+                                       imageMap: imageMap,
+                                       pagesById: &pagesById,
+                                       tilesById: &tilesById,
+                                       pendingLinks: &pendingLinks)
                 }
 
                 let existingFavs = (try? modelContext.fetch(FetchDescriptor<Favorite>())) ?? []
@@ -1005,6 +1050,14 @@ struct SettingsView: View {
                         match.timestamp = max(match.timestamp, r.timestamp)
                     } else {
                         modelContext.insert(Recent(id: r.id, text: r.text, timestamp: r.timestamp, count: r.count))
+                    }
+                }
+
+                // Reconnect destinationPage links now that all pages/tiles exist
+                for link in pendingLinks {
+                    if let tile = tilesById[link.tileId],
+                       let dest = pagesById[link.destPageId] {
+                        tile.destinationPage = dest
                     }
                 }
 
@@ -1055,10 +1108,17 @@ struct SettingsView: View {
     }
 
     @discardableResult
-    private func importPageNode(_ node: PageNode, parent: Page?, orderOffset: inout Int, imageMap: [String: String]) -> Page {
+    private func importPageNode(_ node: PageNode,
+                                parent: Page?,
+                                orderOffset: inout Int,
+                                imageMap: [String: String],
+                                pagesById: inout [UUID: Page],
+                                tilesById: inout [UUID: Tile],
+                                pendingLinks: inout [(tileId: UUID, destPageId: UUID)]) -> Page {
         let page = Page(id: node.id, name: node.name, order: orderOffset, isRoot: parent == nil ? node.isRoot : false)
         page.parent = parent
         modelContext.insert(page)
+        pagesById[page.id] = page
         orderOffset += 1
 
         var order = 0
@@ -1080,12 +1140,23 @@ struct SettingsView: View {
                 partOfSpeechRaw: t.partOfSpeechRaw
             )
             modelContext.insert(tile)
+            tilesById[tile.id] = tile
             page.tiles.append(tile)
             order += 1
+
+            if let destId = t.destinationPageId {
+                pendingLinks.append((tileId: tile.id, destPageId: destId))
+            }
         }
 
         for child in node.children.sorted(by: { $0.order < $1.order }) {
-            _ = importPageNode(child, parent: page, orderOffset: &orderOffset, imageMap: imageMap)
+            _ = importPageNode(child,
+                               parent: page,
+                               orderOffset: &orderOffset,
+                               imageMap: imageMap,
+                               pagesById: &pagesById,
+                               tilesById: &tilesById,
+                               pendingLinks: &pendingLinks)
         }
 
         return page
@@ -1131,6 +1202,29 @@ struct SettingsView: View {
 
         let synthesizer = AVSpeechSynthesizer()
         synthesizer.speak(utterance)
+    }
+}
+
+// Simple JSON FileDocument for the exporter
+struct JSONDataDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+    static var writableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let fileData = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        self.data = fileData
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
 

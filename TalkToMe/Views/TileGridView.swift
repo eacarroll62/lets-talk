@@ -345,6 +345,18 @@ struct TileGridView: View {
         }
     }
 
+    // Reusable lock badge for overlays in TileGridView
+    @ViewBuilder
+    private func lockBadge() -> some View {
+        Image(systemName: "lock.fill")
+            .font(.system(size: 14, weight: .bold))
+            .padding(6)
+            .background(.thinMaterial)
+            .clipShape(Circle())
+            .foregroundColor(.secondary)
+            .accessibilityHidden(true)
+    }
+
     // MARK: - Scanning logic
 
     private func startScanningIfNeeded() {
@@ -826,6 +838,10 @@ private struct TileButton: View {
     let dwellTime: Double
     let onLongPressPreview: () -> Void
 
+    // Dwell progress
+    @State private var dwellProgress: CGFloat = 0.0
+    @State private var isDwelling: Bool = false
+
     private var sizeMultiplier: CGFloat {
         let v = CGFloat(tile.size ?? 1.0)
         return max(0.5, min(2.0, v))
@@ -867,14 +883,53 @@ private struct TileButton: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isEditing && !isSelecting)
+                // Dwell-to-select with progress ring
                 .simultaneousGesture(
                     dwellEnabled
-                    ? LongPressGesture(minimumDuration: dwellTime).onEnded { _ in onPrimaryTap() }
+                    ? LongPressGesture(minimumDuration: dwellTime, maximumDistance: 50)
+                        .onEnded { _ in
+                            onPrimaryTap()
+                            withAnimation(.easeOut(duration: 0.1)) {
+                                dwellProgress = 0
+                                isDwelling = false
+                            }
+                        }
+                        .onChanged { pressing in
+                            // SwiftUI 5: onChanged on LongPressGesture closure runs repeatedly; we gate by flag
+                            if !isDwelling {
+                                isDwelling = true
+                                withAnimation(.linear(duration: dwellTime)) {
+                                    dwellProgress = 1.0
+                                }
+                            }
+                        }
                     : nil
                 )
+                // Preview via shorter long press
                 .simultaneousGesture(
                     LongPressGesture(minimumDuration: 0.5).onEnded { _ in onLongPressPreview() }
                 )
+                // Dwell ring overlay
+                .overlay(alignment: .topTrailing) {
+                    if dwellEnabled && isDwelling {
+                        ZStack {
+                            Circle()
+                                .stroke(Color.gray.opacity(0.25), lineWidth: 6)
+                            Circle()
+                                .trim(from: 0, to: max(0.0, min(1.0, dwellProgress)))
+                                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                        }
+                        .frame(width: 28, height: 28)
+                        .padding(8)
+                        .transition(.opacity)
+                    }
+                }
+                .onChange(of: isDwelling) { _, now in
+                    if !now {
+                        dwellProgress = 0
+                    }
+                }
 
                 if isLocked {
                     lockBadge()
@@ -958,33 +1013,4 @@ private struct TileButton: View {
         }
         return Color.yellow.opacity(0.2)
     }
-}
-
-private extension Color {
-    init?(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        if hexSanitized.hasPrefix("#") {
-            hexSanitized.removeFirst()
-        }
-        guard hexSanitized.count == 6,
-              let rgb = Int(hexSanitized, radix: 16) else {
-            return nil
-        }
-        let r = Double((rgb >> 16) & 0xFF) / 255.0
-        let g = Double((rgb >> 8) & 0xFF) / 255.0
-        let b = Double(rgb & 0xFF) / 255.0
-        self = Color(red: r, green: g, blue: b)
-    }
-}
-
-// Shared lock badge helper for use outside TileButton in this file
-@ViewBuilder
-private func lockBadge() -> some View {
-    Image(systemName: "lock.fill")
-        .font(.system(size: 14, weight: .bold))
-        .padding(6)
-        .background(.thinMaterial)
-        .clipShape(Circle())
-        .foregroundColor(.secondary)
-        .accessibilityHidden(true)
 }

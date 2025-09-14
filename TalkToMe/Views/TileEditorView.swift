@@ -475,32 +475,3 @@ private extension Array where Element: Hashable {
         return filter { seen.insert($0).inserted }
     }
 }
-
-private extension Color {
-    func toHexString(default defaultHex: String) -> String {
-        let ui = UIColor(self)
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        guard ui.getRed(&r, green: &g, blue: &b, alpha: &a) else { return defaultHex }
-        let ri = Int(round(r * 255))
-        let gi = Int(round(g * 255))
-        let bi = Int(round(b * 255))
-        return String(format: "#%02X%02X%02X", ri, gi, bi)
-    }
-}
-
-private extension Color {
-    init?(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        if hexSanitized.hasPrefix("#") {
-            hexSanitized.removeFirst()
-        }
-        guard hexSanitized.count == 6,
-              let rgb = Int(hexSanitized, radix: 16) else {
-            return nil
-        }
-        let r = Double((rgb >> 16) & 0xFF) / 255.0
-        let g = Double((rgb >> 8) & 0xFF) / 255.0
-        let b = Double(rgb & 0xFF) / 255.0
-        self = Color(red: r, green: g, blue: b)
-    }
-}
