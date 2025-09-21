@@ -4,6 +4,18 @@
     "" : {
 
     },
+    "-ed" : {
+
+    },
+    "-er/more" : {
+
+    },
+    "-est/most" : {
+
+    },
+    "-ing" : {
+
+    },
     "%.2f" : {
 
     },
@@ -85,6 +97,9 @@
     "3) Tap Start. Optionally tap Options to restrict volume buttons, motion, keyboards, etc." : {
 
     },
+    "3rd‑s" : {
+
+    },
     "AAC Color Scheme" : {
 
     },
@@ -127,6 +142,24 @@
           }
         }
       }
+    },
+    "Add “%@”" : {
+
+    },
+    "Add “%@” to Message" : {
+
+    },
+    "Add “not”" : {
+
+    },
+    "Add Adjective “%@” to Message" : {
+
+    },
+    "Add Adverb “%@” to Message" : {
+
+    },
+    "Add Comparative “%@” to Message" : {
+
     },
     "Add new phrase" : {
       "localizations" : {
@@ -171,6 +204,9 @@
     "Add Page" : {
 
     },
+    "Add Plural “%@”" : {
+
+    },
     "Add Quick Phrase" : {
       "localizations" : {
         "de" : {
@@ -212,6 +248,9 @@
       }
     },
     "Add short phrases you use often. Reorder them to prioritize." : {
+
+    },
+    "Add Superlative “%@” to Message" : {
 
     },
     "Add Tile" : {
@@ -294,6 +333,9 @@
         }
       }
     },
+    "Adj" : {
+
+    },
     "Adjective" : {
 
     },
@@ -339,6 +381,9 @@
           }
         }
       }
+    },
+    "Adv" : {
+
     },
     "Adverb" : {
 
@@ -2408,6 +2453,9 @@
     "Infer POS for Common Words" : {
 
     },
+    "Insert not" : {
+
+    },
     "Insert quick phrase" : {
 
     },
@@ -3269,6 +3317,9 @@
         }
       }
     },
+    "not" : {
+
+    },
     "Noun" : {
 
     },
@@ -3453,6 +3504,9 @@
     "Play Message" : {
 
     },
+    "Plural" : {
+
+    },
     "Prediction" : {
       "localizations" : {
         "de" : {
@@ -3546,6 +3600,15 @@
 
     },
     "Pronoun" : {
+
+    },
+    "Pronoun Forms" : {
+
+    },
+    "Pronoun variants" : {
+
+    },
+    "Pronouns…" : {
 
     },
     "Pronunciation (optional)" : {

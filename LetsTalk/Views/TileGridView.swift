@@ -352,6 +352,55 @@ struct TileGridView: View {
                             haptic(.warning)
                             delete(tile)
                         }
+
+                        // Morphology quick actions based on Part of Speech
+                        if let pos = tile.partOfSpeech {
+                            Divider()
+                            switch pos {
+                            case .verb:
+                                Button(String(localized: "Add “\(MorphologyEngine.toIng(tile.text))” to Message")) {
+                                    addToMessage(MorphologyEngine.toIng(tile.text))
+                                }
+                                Button(String(localized: "Add “\(MorphologyEngine.toPast(tile.text))” to Message")) {
+                                    addToMessage(MorphologyEngine.toPast(tile.text))
+                                }
+                                Button(String(localized: "Add “\(MorphologyEngine.to3rdPersonS(tile.text))” to Message")) {
+                                    addToMessage(MorphologyEngine.to3rdPersonS(tile.text))
+                                }
+                                Button(String(localized: "Add “not”")) {
+                                    speaker.text = MorphologyEngine.appendWord("not", to: speaker.text)
+                                }
+                            case .noun:
+                                Button(String(localized: "Add Plural “\(MorphologyEngine.pluralize(tile.text))”")) {
+                                    addToMessage(MorphologyEngine.pluralize(tile.text))
+                                }
+                            case .pronoun:
+                                let variants = MorphologyEngine.pronounVariants(tile.text)
+                                if variants.count > 1 {
+                                    ForEach(variants, id: \.self) { form in
+                                        Button(String(localized: "Add “\(form)”")) {
+                                            addToMessage(form)
+                                        }
+                                    }
+                                }
+                            case .adjective:
+                                Button(String(localized: "Add Comparative “\(MorphologyEngine.toComparative(tile.text))” to Message")) {
+                                    addToMessage(MorphologyEngine.toComparative(tile.text))
+                                }
+                                Button(String(localized: "Add Superlative “\(MorphologyEngine.toSuperlative(tile.text))” to Message")) {
+                                    addToMessage(MorphologyEngine.toSuperlative(tile.text))
+                                }
+                                Button(String(localized: "Add Adverb “\(MorphologyEngine.toAdverb(tile.text))” to Message")) {
+                                    addToMessage(MorphologyEngine.toAdverb(tile.text))
+                                }
+                            case .adverb:
+                                Button(String(localized: "Add Adjective “\(MorphologyEngine.adverbToAdjective(tile.text))” to Message")) {
+                                    addToMessage(MorphologyEngine.adverbToAdjective(tile.text))
+                                }
+                            default:
+                                EmptyView()
+                            }
+                        }
                     }
                     .onLongPressGesture {
                         haptic(.medium)
@@ -1337,3 +1386,4 @@ private final class KeyCommandHostingController: UIViewController {
         onCancel()
     }
 }
+

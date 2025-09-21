@@ -17,24 +17,25 @@ struct FavoritesAndQuickPhrasesTests {
 
     @Test("Favorite.text uniqueness enforced")
     func favoritesUniqueness() async throws {
+        // SwiftData uniqueness constraints are only available on iOS 17+
+        guard #available(iOS 17, *) else {
+            return
+        }
+
         let container = try makeInMemoryContainer()
         let context = ModelContext(container)
 
         try await MainActor.run {
             context.insert(Favorite(text: "Hello", order: 0))
-            try? context.save()
+            try context.save()
         }
 
-        var threw = false
-        await MainActor.run {
-            context.insert(Favorite(text: "Hello", order: 1))
-            do {
+        await #expect(throws: Error.self) {
+            try await MainActor.run {
+                context.insert(Favorite(text: "Hello", order: 1))
                 try context.save()
-            } catch {
-                threw = true
             }
         }
-        #expect(threw, "Saving duplicate Favorite.text should fail due to @Attribute(.unique)")
     }
 
     @Test("QuickPhrase ordering is stable and contiguous after reordering")

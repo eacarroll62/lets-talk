@@ -9,6 +9,10 @@ struct SentenceBarView: View {
     @AppStorage("language") private var languageSetting: String = "en-US"
     @State private var isRequestingSpeechAuth = false
 
+    // Quick modifier UI
+    @State private var showPronounSheet: Bool = false
+    @State private var pronounOptions: [String] = []
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Current composed sentence
@@ -18,6 +22,10 @@ struct SentenceBarView: View {
                 .minimumScaleFactor(0.75)
                 .foregroundStyle(speaker.text.isEmpty ? .secondary : .primary)
                 .accessibilityLabel(Text(speaker.text.isEmpty ? String(localized: "Message empty") : String(localized: "Message: \(speaker.text)")))
+                .accessibilityIdentifier("MessageText")
+
+            // Quick Modifier row
+            quickModifierBar()
 
             // Controls row
             HStack(spacing: 12) {
@@ -64,6 +72,7 @@ struct SentenceBarView: View {
                 .buttonStyle(.bordered)
                 .disabled(speaker.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityHint(Text(String(localized: "Remove the last word")))
+                .accessibilityIdentifier("BackspaceButton")
 
                 Spacer()
 
@@ -104,19 +113,7 @@ struct SentenceBarView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(speaker.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .confirmationDialog(
-                    String(localized: "Clear Message?"),
-                    isPresented: $showClearConfirm,
-                    titleVisibility: .visible
-                ) {
-                    Button(String(localized: "Clear"), role: .destructive) {
-                        haptic(.warning)
-                        speaker.text = ""
-                    }
-                    Button(String(localized: "Cancel"), role: .cancel) {}
-                } message: {
-                    Text(String(localized: "This will erase the current message."))
-                }
+                .accessibilityIdentifier("ClearButton")
             }
         }
         .accessibilityElement(children: .contain)
@@ -133,6 +130,206 @@ struct SentenceBarView: View {
         .onChange(of: languageSetting) { _, newValue in
             transcriber.setLocale(newValue)
         }
+        .sheet(isPresented: $showPronounSheet) {
+            NavigationStack {
+                List {
+                    ForEach(pronounOptions, id: \.self) { option in
+                        Button {
+                            applyReplaceLast(with: option)
+                            showPronounSheet = false
+                        } label: {
+                            Text(option)
+                        }
+                    }
+                }
+                .navigationTitle(String(localized: "Pronoun Forms"))
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(String(localized: "Done")) { showPronounSheet = false }
+                    }
+                }
+            }
+        }
+        .confirmationDialog(
+            String(localized: "Clear Message?"),
+            isPresented: $showClearConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Clear"), role: .destructive) {
+                haptic(.warning)
+                speaker.text = ""
+            }
+            Button(String(localized: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "This will erase the current message."))
+        }
+    }
+
+    // MARK: - Quick Modifier Bar
+
+    @ViewBuilder
+    private func quickModifierBar() -> some View {
+        let hasText = !speaker.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Not
+                Button {
+                    applyInsertNot()
+                } label: {
+                    Text(String(localized: "not"))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.red.opacity(0.15))
+                        .foregroundStyle(.red)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityLabel(Text(String(localized: "Insert not")))
+                .accessibilityIdentifier("QuickModNotButton")
+
+                // -ing
+                Button {
+                    applyTransformLast { MorphologyEngine.toIng($0) }
+                } label: {
+                    Text(String(localized: "-ing"))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.blue.opacity(0.15))
+                        .foregroundStyle(.blue)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityIdentifier("QuickModIngButton")
+
+                // -ed
+                Button {
+                    applyTransformLast { MorphologyEngine.toPast($0) }
+                } label: {
+                    Text(String(localized: "-ed"))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.blue.opacity(0.15))
+                        .foregroundStyle(.blue)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityIdentifier("QuickModEdButton")
+
+                // 3rd‑s
+                Button {
+                    applyTransformLast { MorphologyEngine.to3rdPersonS($0) }
+                } label: {
+                    Text(String(localized: "3rd‑s"))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.blue.opacity(0.15))
+                        .foregroundStyle(.blue)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityIdentifier("QuickMod3rdSButton")
+
+                // Plural
+                Button {
+                    applyTransformLast { MorphologyEngine.pluralize($0) }
+                } label: {
+                    Text(String(localized: "Plural"))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.green.opacity(0.15))
+                        .foregroundStyle(.green)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityIdentifier("QuickModPluralButton")
+
+                // Comparative
+                Button {
+                    applyTransformLast { MorphologyEngine.toComparative($0) }
+                } label: {
+                    Text(String(localized: "-er/more"))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.green.opacity(0.15))
+                        .foregroundStyle(.green)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityIdentifier("QuickModComparativeButton")
+
+                // Superlative
+                Button {
+                    applyTransformLast { MorphologyEngine.toSuperlative($0) }
+                } label: {
+                    Text(String(localized: "-est/most"))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.green.opacity(0.15))
+                        .foregroundStyle(.green)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityIdentifier("QuickModSuperlativeButton")
+
+                // Adv (adverb)
+                Button {
+                    applyTransformLast { MorphologyEngine.toAdverb($0) }
+                } label: {
+                    Text("Adv")
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundStyle(.orange)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityIdentifier("QuickModAdverbButton")
+
+                // Adj (adjective)
+                Button {
+                    applyTransformLast { MorphologyEngine.adverbToAdjective($0) }
+                } label: {
+                    Text("Adj")
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundStyle(.orange)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityIdentifier("QuickModAdjectiveButton")
+
+                // Pronouns…
+                Button {
+                    presentPronounVariants()
+                } label: {
+                    Text(String(localized: "Pronouns…"))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Color.purple.opacity(0.15))
+                        .foregroundStyle(.purple)
+                        .clipShape(Capsule())
+                }
+                .disabled(!hasText)
+                .accessibilityLabel(Text(String(localized: "Pronoun variants")))
+                .accessibilityIdentifier("QuickModPronounsButton")
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func applyTransformLast(_ transform: (String) -> String) {
+        let updated = MorphologyEngine.replaceLastWord(in: speaker.text, with: transform)
+        speaker.text = updated
+    }
+
+    private func applyReplaceLast(with word: String) {
+        let updated = MorphologyEngine.replaceLastWord(in: speaker.text) { _ in word }
+        speaker.text = updated
+    }
+
+    private func applyInsertNot() {
+        // Prefer auxiliary insertion; if none, fallback to append
+        let updated = MorphologyEngine.insertNot(into: speaker.text)
+        speaker.text = updated
+    }
+
+    private func presentPronounVariants() {
+        guard let last = MorphologyEngine.lastWord(speaker.text) else { return }
+        let options = MorphologyEngine.pronounVariants(last)
+        if options.count <= 1 { return }
+        pronounOptions = options
+        showPronounSheet = true
     }
 
     // MARK: - Actions
