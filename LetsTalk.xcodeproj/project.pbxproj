@@ -34,6 +34,12 @@
 		A84DDEC02E7138D300C386F9 /* FitzgeraldKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDEBF2E7138D300C386F9 /* FitzgeraldKey.swift */; };
 		A84DDEC22E72F4CB00C386F9 /* AACColorMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDEC12E72F4CB00C386F9 /* AACColorMigration.swift */; };
 		A84DDEC62E7605A300C386F9 /* SentenceBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDEC52E7605A300C386F9 /* SentenceBarView.swift */; };
+		A85D4D852E80A128003E1F07 /* MorphologyEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D7D2E80A128003E1F07 /* MorphologyEngineTests.swift */; };
+		A85D4D862E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D7E2E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift */; };
+		A85D4D982E80AFEF003E1F07 /* ContractedNegationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D972E80AFEF003E1F07 /* ContractedNegationTests.swift */; };
+		A85D4D9A2E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D992E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift */; };
+		A85D4D9C2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D9B2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift */; };
+		A85D4D9E2E80AFF6003E1F07 /* ConjugationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D9D2E80AFF6003E1F07 /* ConjugationTests.swift */; };
 		A871E2202E760FF900F0825D /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A871E21F2E760FF900F0825D /* HelpView.swift */; };
 		A871E2242E762F2F00F0825D /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = A871E2232E762F2F00F0825D /* .gitignore */; };
 		A871E23C2E76795F00F0825D /* ToDo in Resources */ = {isa = PBXBuildFile; fileRef = A871E23B2E76795F00F0825D /* ToDo */; };
@@ -95,6 +101,12 @@
 		A84DDEBF2E7138D300C386F9 /* FitzgeraldKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitzgeraldKey.swift; sourceTree = "<group>"; };
 		A84DDEC12E72F4CB00C386F9 /* AACColorMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AACColorMigration.swift; sourceTree = "<group>"; };
 		A84DDEC52E7605A300C386F9 /* SentenceBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceBarView.swift; sourceTree = "<group>"; };
+		A85D4D7D2E80A128003E1F07 /* MorphologyEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorphologyEngineTests.swift; sourceTree = "<group>"; };
+		A85D4D7E2E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorphologyOverridesPersistenceTests.swift; sourceTree = "<group>"; };
+		A85D4D972E80AFEF003E1F07 /* ContractedNegationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractedNegationTests.swift; sourceTree = "<group>"; };
+		A85D4D992E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeterminerAndPossessiveEdgeCasesTests.swift; sourceTree = "<group>"; };
+		A85D4D9B2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenSplitEdgeCasesTests.swift; sourceTree = "<group>"; };
+		A85D4D9D2E80AFF6003E1F07 /* ConjugationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConjugationTests.swift; sourceTree = "<group>"; };
 		A871E21F2E760FF900F0825D /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		A871E2232E762F2F00F0825D /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		A871E23B2E76795F00F0825D /* ToDo */ = {isa = PBXFileReference; lastKnownFileType = text; path = ToDo; sourceTree = "<group>"; };
@@ -166,6 +178,7 @@
 				A82D05FA2A522BBC004DC550 /* LetsTalk.entitlements */,
 				A82D05FB2A522BBC004DC550 /* Info.plist */,
 				A82D05EF2A522BBB004DC550 /* LetsTalkApp.swift */,
+				A85D4D962E80A96C003E1F07 /* Morphology Engine */,
 				A84B3F292A59F6FD0013A493 /* Views */,
 				A8E222082D0FDA3B002710C0 /* Models */,
 				A8E222072D0FDA22002710C0 /* Extras */,
@@ -186,9 +199,8 @@
 				A8380EB92E6BDD5800E9E58B /* HelpSupportView.swift */,
 				A84DDEBF2E7138D300C386F9 /* FitzgeraldKey.swift */,
 				A84DDEC12E72F4CB00C386F9 /* AACColorMigration.swift */,
-				A871E2412E78CF3300F0825D /* MorphologyEngine.swift */,
-				A871E2232E762F2F00F0825D /* .gitignore */,
 				A871E23B2E76795F00F0825D /* ToDo */,
+				A871E2232E762F2F00F0825D /* .gitignore */,
 			);
 			path = LetsTalk;
 			sourceTree = "<group>";
@@ -222,6 +234,20 @@
 				A871E21F2E760FF900F0825D /* HelpView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		A85D4D962E80A96C003E1F07 /* Morphology Engine */ = {
+			isa = PBXGroup;
+			children = (
+				A871E2412E78CF3300F0825D /* MorphologyEngine.swift */,
+				A85D4D7D2E80A128003E1F07 /* MorphologyEngineTests.swift */,
+				A85D4D7E2E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift */,
+				A85D4D972E80AFEF003E1F07 /* ContractedNegationTests.swift */,
+				A85D4D992E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift */,
+				A85D4D9B2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift */,
+				A85D4D9D2E80AFF6003E1F07 /* ConjugationTests.swift */,
+			);
+			path = "Morphology Engine";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -415,6 +441,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A85D4D9E2E80AFF6003E1F07 /* ConjugationTests.swift in Sources */,
+				A85D4D9C2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift in Sources */,
+				A85D4D982E80AFEF003E1F07 /* ContractedNegationTests.swift in Sources */,
+				A85D4D852E80A128003E1F07 /* MorphologyEngineTests.swift in Sources */,
+				A85D4D862E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift in Sources */,
+				A85D4D9A2E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

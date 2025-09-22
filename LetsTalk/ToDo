@@ -1,34 +1,18 @@
-Key areas to improve to reach 9.5–10/10
-• Accessibility and alternative access
-   • External switch support: integrate UIAccessibilitySwitchControl or direct HID switch hotkeys (e.g., space/enter already handled; consider MFi/Bluetooth switch profiles and explicit switch assignments for next/select/cancel).
-   • VoiceOver: audit focus order and accessibility labels/values/hints on all interactive elements, especially custom tiles, scanning focus rings, and context menus.
-   • Dynamic Type and layout: you’ve added some dynamicTypeSize ranges; verify large accessibility sizes throughout TileGridView, SentenceBarView, and SettingsView to avoid truncation or overflow.
-• Language and symbol ecosystems
-   • Add robust multi-language workflows: full UI localization, per-profile language settings, and on-device language models for prediction.
-   • Symbol libraries: optional integration with open symbol sets (e.g., Twemoji, OpenMoji) or import of commercial sets if licenses permit; bulk assignment tools.
-   • Morphology/grammar tools: support verb inflections, plurals, negation, pronoun variants, and quick modifiers (e.g., “not”, “-ed”, “-ing”) to increase communicative efficiency.
-• Prediction and rate of communication
-   • Your PredictionService hooks are present; consider improved language models, personalization from usage, and next-word/phrase prediction tuned for AAC (core/fringe weighting and recency).
-   • Phrasebanks/templates for common routines (e.g., “I want …”, “I feel …”) with slot filling for faster composition.
-• Sharing and continuity
-   • iCloud Drive/CloudKit sync for boards across devices, versioning, and conflict resolution.
-   • Caregiver/therapist “remote edit” mode with a pairing workflow to edit on a second device while the user communicates.
-• Safety, privacy, compliance
-   • Ensure Info.plist􀰓 has NSMicrophoneUsageDescription, NSSpeechRecognitionUsageDescription, and NSCameraUsageDescription (your code requires all three).
-   • Consider a privacy mode (no recents logging), PIN-protected Admin area, and optional data export encryption.
-   • If used in clinical contexts, document data handling and consider HIPAA-aligned practices where applicable.
-• Onboarding and guidance
-   • First-run tutorial for access methods (scanning, dwell), tile editing, and backup/export reminders.
-   • In-app “Help & Support” looks present—consider embedding short videos or interactive walkthroughs.
-• Performance and robustness
-   • Continue to test on lower-end devices with large boards for scrolling and grid performance; consider prefetching images and avoiding large synchronous image reads on main.
-   • More unit/UI tests around editing flows, scanning transitions, and export/import with images and links.
+A practical milestone plan
+• Phase 1 (now)
+   • Refactor to MorphologyEngine(language:), NLTokenizer integration, per‑language rules containers, language‑scoped overrides, and feature‑gating API.
+   • Keep English feature parity; ensure all public APIs accept/return data types that won’t need to change for Spanish (and friends).
+• Phase 2
+   • Add POS/lemma hints via NLTagger for English first. Define the protocol that lets per‑language modules opt‑in to POS hints if available for that locale.
+   • Build the test harness: Swift Testing suites and accuracy metrics for English.
+• Phase 3
+   • Implement Spanish module (rules + data files). Start with: pluralization, articles (el/la/un/una), basic verb conjugations you will expose in the UI, adjective order/agreement constraints, and negation.
+   • Copy the English test harness and adapt the corpus to Spanish. Set the same ≥95% accuracy target on an AAC‑relevant list.
+   • Update the UI gating so only relevant transforms are shown when the app language or the tile’s language is Spanish.
+• Phase 4
+   • Add more languages as needed, each following the same pattern: rules module, data files, tests, UI gating.
 
-Concrete suggestions you can action soon
-• Add a Profiles feature: separate user profiles with their own preferences, language, and boards.
-• Expand scanning options: auto-scan with dwell select, configurable auditory cues, and scanning groups (e.g., quadrant → row → item).
-• Provide a quick-access toolbar for grammatical modifiers and sentence-level actions (clear, speak, save, copy) with large targets in all layouts.
-• Improve backup UX: schedule-friendly reminders, one-tap export to a chosen iCloud folder, and optional auto-backup when editing is unlocked.
-• Add Shortcuts/Siri intents to speak a favorite or open a page, and a Share Audio action to export a synthesized utterance as an audio file if desired.
-• Finish full localization (UI strings) to match your language features.
-
+Integration tips for your current app
+• You already store per‑tile languageCode on Tile and allow language selection in TileEditorView. Use that to instantiate the engine with the right language for tile‑specific transforms, and default to app language for sentence‑level transforms in SentenceBarView.
+• Speaker already supports languageOverride; keep morphology and TTS aligned: when you transform text using a per‑tile language, pass the same language to Speaker for previews or playback.
+• Maintain a clean fallback: if a transform isn’t supported in the current language, gracefully return the original text and (optionally) present alternative actions.

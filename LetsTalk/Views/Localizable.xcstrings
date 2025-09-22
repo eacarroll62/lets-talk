@@ -3071,6 +3071,9 @@
     "Negation" : {
 
     },
+    "Never change this word" : {
+
+    },
     "New page name" : {
 
     },
@@ -3446,6 +3449,12 @@
         }
       }
     },
+    "Overrides (optional)" : {
+
+    },
+    "Overrides apply when this word is transformed. Leave blank to use default rules. ‘Never change’ keeps the word as‑is for plural/singular transforms." : {
+
+    },
     "Page actions for %@" : {
 
     },
@@ -3495,6 +3504,9 @@
     "Part of Speech (Fitzgerald)" : {
 
     },
+    "Past override (e.g., go → went)" : {
+
+    },
     "Pause" : {
 
     },
@@ -3505,6 +3517,9 @@
 
     },
     "Plural" : {
+
+    },
+    "Plural override (e.g., child → children)" : {
 
     },
     "Prediction" : {

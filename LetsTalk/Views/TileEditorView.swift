@@ -67,6 +67,12 @@ struct TileEditorView: View {
         "pencil", "trash.fill", "photo", "camera", "mic.fill", "speaker.wave.2.fill"
     ]
 
+    // MARK: - Overrides UI state
+
+    @State private var pluralOverride: String = ""
+    @State private var pastOverride: String = ""
+    @State private var neverChange: Bool = false
+
     var isEditing: Bool { tileToEdit != nil }
 
     var body: some View {
@@ -213,6 +219,21 @@ struct TileEditorView: View {
                     }
                 }
 
+                // MARK: Overrides (optional)
+
+                Section(header: Text("Overrides (optional)"),
+                        footer: Text("Overrides apply when this word is transformed. Leave blank to use default rules. ‘Never change’ keeps the word as‑is for plural/singular transforms.")) {
+                    TextField("Plural override (e.g., child → children)", text: $pluralOverride)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+
+                    TextField("Past override (e.g., go → went)", text: $pastOverride)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+
+                    Toggle("Never change this word", isOn: $neverChange)
+                }
+
                 Section(header: Text("Image")) {
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                         Label("Choose from Library", systemImage: "photo")
@@ -244,9 +265,17 @@ struct TileEditorView: View {
                     Toggle("This tile opens a category page", isOn: Binding(
                         get: { destinationPage != nil || createNewPage },
                         set: { newValue in
-                            if !newValue {
+                            if newValue {
+                                // Turning ON: ensure the condition becomes true.
+                                // Prefer showing the "Create New Page" controls if nothing is selected yet.
+                                if destinationPage == nil && !createNewPage {
+                                    createNewPage = true
+                                }
+                            } else {
+                                // Turning OFF: clear any selection and fields.
                                 destinationPage = nil
                                 createNewPage = false
+                                newPageName = ""
                             }
                         }
                     ))
@@ -307,6 +336,7 @@ struct TileEditorView: View {
             }
             .onAppear {
                 hydrateFromExisting()
+                hydrateOverridesForCurrentWord()
                 let locale = languageCode.hasPrefix("es") ? "es-ES" : "en-US"
                 transcriber.setLocale(locale)
             }
@@ -327,6 +357,15 @@ struct TileEditorView: View {
         languageCode = tile.languageCode ?? languageCode
         destinationPage = tile.destinationPage
         selectedPOS = tile.partOfSpeech
+    }
+
+    private func hydrateOverridesForCurrentWord() {
+        let wordKey = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !wordKey.isEmpty else { return }
+        let overrides = OverridesStore.shared.get(for: languageCode)
+        pluralOverride = overrides.plural[wordKey] ?? ""
+        pastOverride = overrides.past[wordKey] ?? ""
+        neverChange = overrides.doNotChange.contains(wordKey)
     }
 
     private func toggleDictationForText() {
@@ -419,12 +458,54 @@ struct TileEditorView: View {
             page.tiles.append(tile)
         }
 
+        // Persist overrides for this word (lowercased) in the selected language
+        persistOverridesForCurrentWord()
+
         do {
             try modelContext.save()
         } catch {
             print("Failed to save tile: \(error)")
         }
         dismiss()
+    }
+
+    private func persistOverridesForCurrentWord() {
+        let key = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !key.isEmpty else { return }
+        let plural = pluralOverride.trimmingCharacters(in: .whitespacesAndNewlines)
+        let past = pastOverride.trimmingCharacters(in: .whitespacesAndNewlines)
+        let never = neverChange
+
+        MorphologyEngine.updateOverrides(for: languageCode) { o in
+            // Plural override add/remove
+            if plural.isEmpty {
+                o.plural.removeValue(forKey: key)
+                // Also remove reverse singular if it matched this mapping (conservative; leave others)
+                if let singular = o.singular.first(where: { $0.value == key })?.key {
+                    o.singular.removeValue(forKey: singular)
+                }
+            } else {
+                o.plural[key] = plural
+                o.singular[plural.lowercased()] = key
+            }
+
+            // Past override add/remove
+            if past.isEmpty {
+                o.past.removeValue(forKey: key)
+                // Do not attempt reverse mapping here; base map handles lemmas separately
+            } else {
+                o.past[key] = past
+                // Optionally set base (lemma) for the past form to this key
+                o.base[past.lowercased()] = key
+            }
+
+            // Never change set membership
+            if never {
+                o.doNotChange.insert(key)
+            } else {
+                o.doNotChange.remove(key)
+            }
+        }
     }
 
     // MARK: - Symbol Picker
