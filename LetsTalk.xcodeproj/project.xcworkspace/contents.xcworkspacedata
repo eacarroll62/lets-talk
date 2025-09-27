@@ -4,4 +4,10 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <FileRef
+      location = "group:FrenchRules.swift">
+   </FileRef>
+   <FileRef
+      location = "group:GermanRules.swift">
+   </FileRef>
 </Workspace>

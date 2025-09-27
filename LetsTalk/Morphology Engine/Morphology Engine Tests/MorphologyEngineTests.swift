@@ -74,14 +74,14 @@ struct MorphologyEngineTests {
 
     @Test("Negation insertion and simple auxiliary negation")
     func testNegation() async throws {
-        let inserted = MorphologyEngine.insertNot(in: ["I","am","hungry"])
-        #expect(inserted == ["I","am","not","hungry"])
+        let inserted = MorphologyEngine.insertNot(into: "I am hungry")
+        #expect(inserted == "I am not hungry")
 
-        let appended = MorphologyEngine.insertNot(in: ["I","want"])
-        #expect(appended == ["I","want","not"])
+        let appended = MorphologyEngine.insertNot(into: "I want")
+        #expect(appended == "I want not")
 
-        let simpleNeg = MorphologyEngine.negateSimpleVerb(in: ["He","likes"])
-        #expect(simpleNeg == ["He","does","not","like"])
+        let simpleNeg = MorphologyEngine.negateSimpleVerb(in: "He likes")
+        #expect(simpleNeg == "He does not like")
     }
 
     @Test("Replace last word in sentence")

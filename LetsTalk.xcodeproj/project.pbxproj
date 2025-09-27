@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A810A0972E889DFA00E863DA /* FileName.swift in Sources */ = {isa = PBXBuildFile; fileRef = A810A0962E889DFA00E863DA /* FileName.swift */; };
 		A82D05F02A522BBB004DC550 /* LetsTalkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05EF2A522BBB004DC550 /* LetsTalkApp.swift */; };
 		A82D05F22A522BBB004DC550 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82D05F12A522BBB004DC550 /* MainView.swift */; };
 		A82D05F42A522BBC004DC550 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A82D05F32A522BBC004DC550 /* Assets.xcassets */; };
@@ -34,12 +35,8 @@
 		A84DDEC02E7138D300C386F9 /* FitzgeraldKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDEBF2E7138D300C386F9 /* FitzgeraldKey.swift */; };
 		A84DDEC22E72F4CB00C386F9 /* AACColorMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDEC12E72F4CB00C386F9 /* AACColorMigration.swift */; };
 		A84DDEC62E7605A300C386F9 /* SentenceBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84DDEC52E7605A300C386F9 /* SentenceBarView.swift */; };
-		A85D4D852E80A128003E1F07 /* MorphologyEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D7D2E80A128003E1F07 /* MorphologyEngineTests.swift */; };
-		A85D4D862E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D7E2E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift */; };
-		A85D4D982E80AFEF003E1F07 /* ContractedNegationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D972E80AFEF003E1F07 /* ContractedNegationTests.swift */; };
-		A85D4D9A2E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D992E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift */; };
-		A85D4D9C2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D9B2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift */; };
-		A85D4D9E2E80AFF6003E1F07 /* ConjugationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4D9D2E80AFF6003E1F07 /* ConjugationTests.swift */; };
+		A85D4DAA2E838C2E003E1F07 /* MorphologyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4DA92E838C2E003E1F07 /* MorphologyProtocol.swift */; };
+		A85D4DAB2E838C2E003E1F07 /* MorphologyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85D4DA92E838C2E003E1F07 /* MorphologyProtocol.swift */; };
 		A871E2202E760FF900F0825D /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A871E21F2E760FF900F0825D /* HelpView.swift */; };
 		A871E2242E762F2F00F0825D /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = A871E2232E762F2F00F0825D /* .gitignore */; };
 		A871E23C2E76795F00F0825D /* ToDo in Resources */ = {isa = PBXBuildFile; fileRef = A871E23B2E76795F00F0825D /* ToDo */; };
@@ -70,6 +67,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A810A0962E889DFA00E863DA /* FileName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileName.swift; sourceTree = "<group>"; };
 		A82D05EC2A522BBB004DC550 /* LetsTalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LetsTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A82D05EF2A522BBB004DC550 /* LetsTalkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetsTalkApp.swift; sourceTree = "<group>"; };
 		A82D05F12A522BBB004DC550 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
@@ -101,12 +99,7 @@
 		A84DDEBF2E7138D300C386F9 /* FitzgeraldKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitzgeraldKey.swift; sourceTree = "<group>"; };
 		A84DDEC12E72F4CB00C386F9 /* AACColorMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AACColorMigration.swift; sourceTree = "<group>"; };
 		A84DDEC52E7605A300C386F9 /* SentenceBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceBarView.swift; sourceTree = "<group>"; };
-		A85D4D7D2E80A128003E1F07 /* MorphologyEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorphologyEngineTests.swift; sourceTree = "<group>"; };
-		A85D4D7E2E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorphologyOverridesPersistenceTests.swift; sourceTree = "<group>"; };
-		A85D4D972E80AFEF003E1F07 /* ContractedNegationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractedNegationTests.swift; sourceTree = "<group>"; };
-		A85D4D992E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeterminerAndPossessiveEdgeCasesTests.swift; sourceTree = "<group>"; };
-		A85D4D9B2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenSplitEdgeCasesTests.swift; sourceTree = "<group>"; };
-		A85D4D9D2E80AFF6003E1F07 /* ConjugationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConjugationTests.swift; sourceTree = "<group>"; };
+		A85D4DA92E838C2E003E1F07 /* MorphologyProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorphologyProtocol.swift; sourceTree = "<group>"; };
 		A871E21F2E760FF900F0825D /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		A871E2232E762F2F00F0825D /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		A871E23B2E76795F00F0825D /* ToDo */ = {isa = PBXFileReference; lastKnownFileType = text; path = ToDo; sourceTree = "<group>"; };
@@ -122,6 +115,8 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A8380EE22E6D572400E9E58B /* LetsTalkTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LetsTalkTests; sourceTree = "<group>"; };
+		A85D4DAF2E838D26003E1F07 /* Morphology Engine Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Morphology Engine Tests"; sourceTree = "<group>"; };
+		A85D4DB82E83BA57003E1F07 /* Rules */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Rules; sourceTree = "<group>"; };
 		A880271F2E78EFBF001F07B8 /* LetsTalkUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LetsTalkUITests; sourceTree = "<group>"; };
 		A8E222072D0FDA22002710C0 /* Extras */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Extras; sourceTree = "<group>"; };
 		A8E222082D0FDA3B002710C0 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
@@ -232,6 +227,7 @@
 				A8380EBD2E6D013700E9E58B /* VoiceSelection.swift */,
 				A84DDEC52E7605A300C386F9 /* SentenceBarView.swift */,
 				A871E21F2E760FF900F0825D /* HelpView.swift */,
+				A810A0962E889DFA00E863DA /* FileName.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -239,13 +235,10 @@
 		A85D4D962E80A96C003E1F07 /* Morphology Engine */ = {
 			isa = PBXGroup;
 			children = (
+				A85D4DB82E83BA57003E1F07 /* Rules */,
+				A85D4DAF2E838D26003E1F07 /* Morphology Engine Tests */,
 				A871E2412E78CF3300F0825D /* MorphologyEngine.swift */,
-				A85D4D7D2E80A128003E1F07 /* MorphologyEngineTests.swift */,
-				A85D4D7E2E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift */,
-				A85D4D972E80AFEF003E1F07 /* ContractedNegationTests.swift */,
-				A85D4D992E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift */,
-				A85D4D9B2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift */,
-				A85D4D9D2E80AFF6003E1F07 /* ConjugationTests.swift */,
+				A85D4DA92E838C2E003E1F07 /* MorphologyProtocol.swift */,
 			);
 			path = "Morphology Engine";
 			sourceTree = "<group>";
@@ -266,6 +259,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				A85D4DB82E83BA57003E1F07 /* Rules */,
 				A8E222072D0FDA22002710C0 /* Extras */,
 				A8E222082D0FDA3B002710C0 /* Models */,
 			);
@@ -289,6 +283,8 @@
 			);
 			fileSystemSynchronizedGroups = (
 				A8380EE22E6D572400E9E58B /* LetsTalkTests */,
+				A85D4DAF2E838D26003E1F07 /* Morphology Engine Tests */,
+				A85D4DB82E83BA57003E1F07 /* Rules */,
 			);
 			name = LetsTalkTests;
 			packageProductDependencies = (
@@ -404,6 +400,7 @@
 			files = (
 				A8380E9E2E69623400E9E58B /* CameraCaptureView.swift in Sources */,
 				A84DDEC62E7605A300C386F9 /* SentenceBarView.swift in Sources */,
+				A85D4DAB2E838C2E003E1F07 /* MorphologyProtocol.swift in Sources */,
 				A8DAEC6A2E6918D40082027E /* Page.swift in Sources */,
 				A8380EAE2E6A4C8800E9E58B /* BreadcrumbBar.swift in Sources */,
 				A8DAEC6C2E6918D60082027E /* Tile.swift in Sources */,
@@ -421,6 +418,7 @@
 				A8DAEC6E2E6918D90082027E /* TileGridView.swift in Sources */,
 				A8380EBC2E6CC0DC00E9E58B /* SpeechTranscriber.swift in Sources */,
 				A8380EAA2E696DD800E9E58B /* QuickPhrase.swift in Sources */,
+				A810A0972E889DFA00E863DA /* FileName.swift in Sources */,
 				A871E2422E78CF3300F0825D /* MorphologyEngine.swift in Sources */,
 				A82D05F02A522BBB004DC550 /* LetsTalkApp.swift in Sources */,
 				A84B3F262A59F3A30013A493 /* MessageView.swift in Sources */,
@@ -441,12 +439,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A85D4D9E2E80AFF6003E1F07 /* ConjugationTests.swift in Sources */,
-				A85D4D9C2E80AFF2003E1F07 /* TokenSplitEdgeCasesTests.swift in Sources */,
-				A85D4D982E80AFEF003E1F07 /* ContractedNegationTests.swift in Sources */,
-				A85D4D852E80A128003E1F07 /* MorphologyEngineTests.swift in Sources */,
-				A85D4D862E80A128003E1F07 /* MorphologyOverridesPersistenceTests.swift in Sources */,
-				A85D4D9A2E80AFF0003E1F07 /* DeterminerAndPossessiveEdgeCasesTests.swift in Sources */,
+				A85D4DAA2E838C2E003E1F07 /* MorphologyProtocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -625,7 +618,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -664,7 +657,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -686,7 +679,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8KD95CCYA7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.MainStreetAppBrewery.TalkToMeTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -708,7 +701,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8KD95CCYA7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.MainStreetAppBrewery.TalkToMeTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -729,7 +722,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8KD95CCYA7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.MainStreetAppBrewery.LetsTalkUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -751,7 +744,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8KD95CCYA7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.MainStreetAppBrewery.LetsTalkUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -15,14 +15,32 @@ struct SentenceBarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Current composed sentence
-            Text(speaker.text.isEmpty ? String(localized: "Tap tiles to build your message…") : speaker.text)
-                .font(.title3.weight(.semibold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-                .foregroundStyle(speaker.text.isEmpty ? .secondary : .primary)
-                .accessibilityLabel(Text(speaker.text.isEmpty ? String(localized: "Message empty") : String(localized: "Message: \(speaker.text)")))
-                .accessibilityIdentifier("MessageText")
+            // Current composed sentence with inline Clear button
+            HStack(alignment: .center, spacing: 8) {
+                Text(speaker.text.isEmpty ? String(localized: "Tap tiles to build your message…") : speaker.text)
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .foregroundStyle(speaker.text.isEmpty ? .secondary : .primary)
+                    .accessibilityLabel(Text(speaker.text.isEmpty ? String(localized: "Message empty") : String(localized: "Message: \(speaker.text)")))
+                    .accessibilityIdentifier("MessageText")
+
+                Spacer(minLength: 8)
+
+                if !speaker.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button(role: .destructive) {
+                        showClearConfirm = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.secondary)
+                            .font(.title3)
+                            .accessibilityLabel(Text(String(localized: "Clear message")))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("SentenceBarClearButton")
+                }
+            }
 
             // Quick Modifier row
             quickModifierBar()
@@ -105,7 +123,7 @@ struct SentenceBarView: View {
                     .buttonStyle(.bordered)
                 }
 
-                // Clear
+                // Clear (controls row)
                 Button(role: .destructive) {
                     showClearConfirm = true
                 } label: {

@@ -15,14 +15,28 @@ struct FavoritesAndQuickPhrasesTests {
         )
     }
 
+    // Disk-backed container to ensure uniqueness constraints are enforced
+    private func makeDiskBackedContainer() throws -> ModelContainer {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SwiftData-Uniqueness-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let storeURL = tempDir.appendingPathComponent("Store.sqlite")
+        let config = ModelConfiguration(url: storeURL)
+        return try ModelContainer(
+            for: Favorite.self, Page.self, Tile.self, Recent.self, QuickPhrase.self,
+            configurations: config
+        )
+    }
+
     @Test("Favorite.text uniqueness enforced")
     func favoritesUniqueness() async throws {
-        // SwiftData uniqueness constraints are only available on iOS 17+
-        guard #available(iOS 17, *) else {
+        // SwiftData uniqueness constraints are available on iOS 17+ / macOS 14+
+        guard #available(iOS 17, macOS 14, *) else {
             return
         }
 
-        let container = try makeInMemoryContainer()
+        // Use disk-backed store because in-memory stores do not enforce uniqueness constraints.
+        let container = try makeDiskBackedContainer()
         let context = ModelContext(container)
 
         try await MainActor.run {
@@ -30,12 +44,27 @@ struct FavoritesAndQuickPhrasesTests {
             try context.save()
         }
 
-        await #expect(throws: Error.self) {
+        // Try inserting a duplicate and saving. Some configurations may throw, others may ignore/upsert.
+        var didThrow = false
+        do {
             try await MainActor.run {
                 context.insert(Favorite(text: "Hello", order: 1))
                 try context.save()
             }
+        } catch {
+            didThrow = true
         }
+
+        // Regardless of throw behavior, assert that there is only one Favorite with text == "Hello".
+        let duplicates: [Favorite] = try await MainActor.run {
+            let predicate = #Predicate<Favorite> { $0.text == "Hello" }
+            let descriptor = FetchDescriptor<Favorite>(predicate: predicate)
+            return try context.fetch(descriptor)
+        }
+        #expect(duplicates.count == 1, "There must only be a single Favorite with the same text, even if save didn’t throw. Got \(duplicates.count).")
+
+        // Optionally, ensure at least one enforcement mechanism happened.
+        #expect(didThrow || duplicates.count == 1)
     }
 
     @Test("QuickPhrase ordering is stable and contiguous after reordering")

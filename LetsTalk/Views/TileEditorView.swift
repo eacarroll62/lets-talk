@@ -29,8 +29,19 @@ struct TileEditorView: View {
     @State private var selectedPOS: PartOfSpeech?
 
     // Destination page (folder) selection
+    private enum DestinationMode: String, CaseIterable, Identifiable {
+        case none, existing, new
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .none: return String(localized: "None")
+            case .existing: return String(localized: "Existing")
+            case .new: return String(localized: "New")
+            }
+        }
+    }
+    @State private var destinationMode: DestinationMode = .none
     @State private var destinationPage: Page?
-    @State private var createNewPage: Bool = false
     @State private var newPageName: String = ""
 
     // Image picking
@@ -234,73 +245,47 @@ struct TileEditorView: View {
                     Toggle("Never change this word", isOn: $neverChange)
                 }
 
-                Section(header: Text("Image")) {
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label("Choose from Library", systemImage: "photo")
-                    }
-
-                    Button {
-                        showCamera = true
-                    } label: {
-                        Label("Take Photo", systemImage: "camera")
-                    }
-
-                    if let data = selectedImageData ?? cameraImageData, let ui = UIImage(data: data) {
-                        Image(uiImage: ui)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 120)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    } else if let existing = tileToEdit?.imageURL,
-                              let ui = UIImage(contentsOfFile: existing.path) {
-                        Image(uiImage: ui)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 120)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    }
-                }
+                // MARK: Destination Page
 
                 Section(header: Text("Destination Page")) {
-                    Toggle("This tile opens a category page", isOn: Binding(
-                        get: { destinationPage != nil || createNewPage },
-                        set: { newValue in
-                            if newValue {
-                                // Turning ON: ensure the condition becomes true.
-                                // Prefer showing the "Create New Page" controls if nothing is selected yet.
-                                if destinationPage == nil && !createNewPage {
-                                    createNewPage = true
-                                }
-                            } else {
-                                // Turning OFF: clear any selection and fields.
-                                destinationPage = nil
-                                createNewPage = false
-                                newPageName = ""
-                            }
+                    Picker("Link", selection: $destinationMode) {
+                        ForEach(DestinationMode.allCases) { mode in
+                            Text(mode.label).tag(mode)
                         }
-                    ))
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: destinationMode) { _, newMode in
+                        switch newMode {
+                        case .none:
+                            destinationPage = nil
+                            newPageName = ""
+                        case .existing:
+                            newPageName = ""
+                        case .new:
+                            destinationPage = nil
+                        }
+                    }
 
-                    if destinationPage != nil || createNewPage {
+                    if destinationMode == .existing {
                         Picker("Existing Page", selection: Binding<Page?>(
                             get: { destinationPage },
                             set: { newVal in
                                 destinationPage = newVal
-                                createNewPage = false
+                                // Only set parent if the selected page has no parent yet (avoid cycles)
                                 if let dest = newVal, dest.parent == nil {
                                     dest.parent = page
                                 }
                             }
                         )) {
                             Text("None").tag(Page?.none)
-                            ForEach(pages) { p in
-                                Text(p.name).tag(Page?.some(p))
+                            ForEach(hierarchicalPageChoices(), id: \.0.id) { (p, depth) in
+                                // Indent by hierarchy depth; exclude current page and descendants in data source
+                                let indent = String(repeating: "  ", count: depth)
+                                Text("\(indent)\(p.name)").tag(Page?.some(p))
                             }
                         }
-
-                        Toggle("Create New Page", isOn: $createNewPage)
-                        if createNewPage {
-                            TextField("New Page Name", text: $newPageName)
-                        }
+                    } else if destinationMode == .new {
+                        TextField("New Page Name", text: $newPageName)
                     }
                 }
             }
@@ -339,6 +324,14 @@ struct TileEditorView: View {
                 hydrateOverridesForCurrentWord()
                 let locale = languageCode.hasPrefix("es") ? "es-ES" : "en-US"
                 transcriber.setLocale(locale)
+
+                // Initialize destination mode for editing
+                if let dest = tileToEdit?.destinationPage {
+                    destinationMode = .existing
+                    destinationPage = dest
+                } else {
+                    destinationMode = .none
+                }
             }
             .onDisappear {
                 // Ensure the audio session is restored even if the sheet is dismissed by swipe
@@ -413,8 +406,17 @@ struct TileEditorView: View {
     }
 
     private func saveTile() {
-        var dest: Page? = destinationPage
-        if createNewPage {
+        // Resolve destination based on mode
+        var dest: Page?
+        switch destinationMode {
+        case .none:
+            dest = nil
+        case .existing:
+            dest = destinationPage
+            if let d = dest, d.parent == nil {
+                d.parent = page
+            }
+        case .new:
             let newOrder = (pages.map { $0.order }.max() ?? -1) + 1
             let newPage = Page(name: newPageName.isEmpty ? text : newPageName, order: newOrder, isRoot: false)
             newPage.parent = page
@@ -506,6 +508,61 @@ struct TileEditorView: View {
                 o.doNotChange.remove(key)
             }
         }
+    }
+
+    // MARK: - Hierarchy helpers
+
+    // Build a depth-first, name-sorted hierarchy excluding the current page and its descendants.
+    private func hierarchicalPageChoices() -> [(Page, Int)] {
+        let currentID = page.id
+        let excluded = descendantIDs(of: page)
+        let all = pages
+
+        // Build a children map
+        var childrenMap: [UUID: [Page]] = [:]
+        for p in all {
+            let pid = p.parent?.id
+            childrenMap[pid ?? UUID()] = [] // placeholder so keys exist
+        }
+        // Rebuild properly
+        childrenMap.removeAll()
+        for p in all {
+            let key = p.parent?.id
+            childrenMap[key ?? UUID()] = (childrenMap[key ?? UUID()] ?? []) + [p]
+        }
+
+        // Identify roots (no parent)
+        let roots = all.filter { $0.parent == nil }
+
+        func dfs(_ node: Page, depth: Int, into out: inout [(Page, Int)]) {
+            let id = node.id
+            if id == currentID || excluded.contains(id) { return }
+            out.append((node, depth))
+            let kids = (childrenMap[id] ?? []).sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            for child in kids {
+                dfs(child, depth: depth + 1, into: &out)
+            }
+        }
+
+        var flattened: [(Page, Int)] = []
+        let sortedRoots = roots.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        for r in sortedRoots {
+            dfs(r, depth: 0, into: &flattened)
+        }
+        return flattened
+    }
+
+    private func descendantIDs(of root: Page) -> Set<UUID> {
+        var seen = Set<UUID>()
+        func walk(_ p: Page) {
+            for c in p.children {
+                if seen.insert(c.id).inserted {
+                    walk(c)
+                }
+            }
+        }
+        walk(root)
+        return seen
     }
 
     // MARK: - Symbol Picker

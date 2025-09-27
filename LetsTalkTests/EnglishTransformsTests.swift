@@ -54,14 +54,15 @@ struct EnglishTransformsTests {
     @Test("Pronoun variants")
     func pronounVariants() async throws {
         #expect(Set(MorphologyEngine.pronounVariants("he")).isSuperset(of: ["he","him","his","himself"]))
-        #expect(Set(MorphologyEngine.pronounVariants("She")).isSuperset(of: ["She","Her","Hers","Herself"]))
+        // Engine policy: if input is capitalized, nominative remains capitalized; other forms are lowercase.
+        #expect(Set(MorphologyEngine.pronounVariants("She")).isSuperset(of: ["She","her","hers","herself"]))
     }
 
     @Test("Negation and yes/no questions with and without auxiliaries")
     func clauses() async throws {
         let engine = MorphologyEngine(languageCode: "en")
-        #expect(engine.negate(into: "I go") == "I do not go")
-        #expect(engine.negate(into: "She is running") == "She is not running")
+        #expect(MorphologyEngine.negate(into: "I go") == "I do not go")
+        #expect(MorphologyEngine.negate(into: "She is running") == "She is not running")
         #expect(engine.makeYesNoQuestion(into: "You like pizza") == "Do you like pizza")
         #expect(engine.makeYesNoQuestion(into: "They are here") == "Are they here")
     }
